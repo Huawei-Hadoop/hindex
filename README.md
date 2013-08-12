@@ -1,12 +1,14 @@
 hindex - Secondary Index for HBase
 ======
 
-The HBase Secondary Index supports the following features:
-- Supports multiple indexes on table and multi column index
-- Support indexing part of a column value
-- Support for equals and range condition scans using index.
-- Support bulk loading data to indexed table – Indexing done with bulk load
-- Compatible with Apache HBase 0.94.8
+The solution is 100% Java, compatible with Apache HBase 0.94.8, and is open sourced under ASL.
+
+Following capabilities are supported currently.
+- multiple indexes on table,
+- multi column index,
+- index based on part of a column value,
+- equals and range condition scans using index, and
+- bulk loading data to indexed table (Indexing done with bulk load).
 
 
 ## How it works
@@ -20,7 +22,7 @@ Server reads the Index specification passed during the table creation and create
 When a row is put into the HBase (user) table, co processors prepare and put the index information  in the corresponding index table.
 Index table rowkey = region startkey + index name + indexed column value + user table rowkey
 
-Ex:  
+E.g.:  
 
 Table –> tab1 column family –> cf
 
@@ -60,8 +62,10 @@ No changes required for Puts, Deletes at client side as index operations for the
 No change in scan code for the client app. 
 
 No need to specify the index(s) to be used. Secondary Index implementation finds the best index for Scan by analyzing the filters used for the query.
+
 ## Source 
-This is the complete HBase source with Secondary index support on 0.94.8 version
+This repository contains source for Secondary Index support on Apache HBase 0.94.8.
+
 ## Building from source and testing
 Building from source procedure is same as building HBase source hence it requires
 - Java 1.6 or later
@@ -95,8 +99,8 @@ __Property__
 - __description__ - *Classes which defines coprocessor hooks to support WAL operations.
 org.apache.hadoop.hbase.index.coprocessor.wal.IndexWALObserver – class define coprocessors hooks to support secondary index WAL operations*
 
-## Roadmap
-- Support to dynamically add/drop index
+## Future Work
+- Dynamically add/drop index
 - Integrate Secondary Index Management in the HBase Shell 
 - Optimize range scan scenarios
 - HBCK tool support for Secondary index tables
