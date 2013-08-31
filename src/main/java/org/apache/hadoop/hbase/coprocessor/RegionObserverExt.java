@@ -108,6 +108,16 @@ public interface RegionObserverExt {
       byte[] splitKey) throws IOException;
 
   /**
+   * This will be called after PONR step as part of split transaction Calling
+   * {@link org.apache.hadoop.hbase.coprocessor.ObserverContext#bypass()} has no effect in this
+   * hook.
+   * @param ctx
+   * @throws IOException
+   */
+  void preSplitAfterPONR(final ObserverContext<RegionCoprocessorEnvironment> ctx)
+      throws IOException;
+
+  /**
    * This is used to roll back the split related transactions.
    * @param ctx
    * @return

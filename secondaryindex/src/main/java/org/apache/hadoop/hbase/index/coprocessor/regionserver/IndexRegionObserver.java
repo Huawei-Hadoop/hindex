@@ -634,9 +634,9 @@ public class IndexRegionObserver extends BaseRegionObserver implements RegionObs
   }
 
   @Override
-  public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r)
+  public void preSplitAfterPONR(ObserverContext<RegionCoprocessorEnvironment> ctx)
       throws IOException {
-    RegionCoprocessorEnvironment environment = e.getEnvironment();
+    RegionCoprocessorEnvironment environment = ctx.getEnvironment();
     HRegionServer rs = (HRegionServer) environment.getRegionServerServices();
     HRegion region = environment.getRegion();
     String userTableName = region.getTableDesc().getNameAsString();
@@ -655,8 +655,9 @@ public class IndexRegionObserver extends BaseRegionObserver implements RegionObs
         PairOfSameType<HRegion> daughters = splitInfo.getDaughters();
         if (splitTransaction != null && daughters != null) {
           splitTransaction.stepsAfterPONR(rs, rs, daughters);
-          LOG.info("Daughter regions are opened and split transaction finished for zknodes for index table "
-              + indexTableName + " for the region " + region.getRegionInfo());
+          LOG.info("Daughter regions are opened and split transaction finished"
+              + " for zknodes for index table " + indexTableName + " for the region "
+              + region.getRegionInfo());
         }
       } catch (Exception ex) {
         String msg =

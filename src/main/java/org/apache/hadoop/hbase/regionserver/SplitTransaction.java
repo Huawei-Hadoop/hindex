@@ -540,6 +540,9 @@ public class SplitTransaction {
       final RegionServerServices services)
   throws IOException {
     PairOfSameType<HRegion> regions = createDaughters(server, services);
+    if (this.parent.getCoprocessorHost() != null) {
+      this.parent.getCoprocessorHost().preSplitAfterPONR();
+    }
     stepsAfterPONR(server, services, regions);
     return regions;
   }

@@ -600,6 +600,11 @@ public class SimpleRegionObserver extends BaseRegionObserver implements RegionOb
   }
 
   @Override
+  public void preSplitAfterPONR(
+      ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
+  }
+  
+  @Override
   public void preRollBack(ObserverContext<RegionCoprocessorEnvironment> ctx) throws IOException {
     // TODO Auto-generated method stub
     

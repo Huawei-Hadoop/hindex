@@ -1691,6 +1691,24 @@ public class RegionCoprocessorHost
     }
     return info;
   }
+  
+  public void preSplitAfterPONR() throws IOException {
+    ObserverContext<RegionCoprocessorEnvironment> ctx = null;
+    for (RegionEnvironment env : coprocessors) {
+      if (env.getInstance() instanceof RegionObserverExt) {
+        ctx = ObserverContext.createAndPrepare(env, ctx);
+        try {
+          ((RegionObserverExt) env.getInstance()).preSplitAfterPONR(ctx);
+        } catch (Throwable e) {
+          handleCoprocessorThrowable(env, e);
+        }
+        if (ctx.shouldComplete()) {
+          break;
+        }
+      }
+    }
+  }
+
 
   public void preRollBack() throws IOException {
     boolean result = false;
