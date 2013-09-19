@@ -419,9 +419,9 @@ public class IndexRegionObserver extends BaseRegionObserver implements RegionObs
   }
 
   @Override
-  public boolean postFilterRow(ObserverContext<RegionCoprocessorEnvironment> ctx,
-      InternalScanner s, byte[] currentRow) throws IOException {
-    String tableName = ctx.getEnvironment().getRegion().getTableDesc().getNameAsString();
+  public boolean postScannerFilterRow(ObserverContext<RegionCoprocessorEnvironment> e,
+      InternalScanner s, byte[] currentRow, boolean hasMore) throws IOException {
+    String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
     if (IndexUtils.isIndexTable(tableName)) {
       return true;
     }
@@ -450,7 +450,7 @@ public class IndexRegionObserver extends BaseRegionObserver implements RegionObs
       }
     }
     return true;
-  }
+  }  
 
   public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan,
       RegionScanner s) {

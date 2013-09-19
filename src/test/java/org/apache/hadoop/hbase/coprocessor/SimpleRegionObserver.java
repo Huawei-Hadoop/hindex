@@ -586,13 +586,6 @@ public class SimpleRegionObserver extends BaseRegionObserver implements RegionOb
   }
 
   @Override
-  public boolean postFilterRow(ObserverContext<RegionCoprocessorEnvironment> ctx,
-      InternalScanner s, byte[] currentRow) throws IOException {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
   public SplitInfo preSplitBeforePONR(ObserverContext<RegionCoprocessorEnvironment> ctx,
       byte[] splitKey) throws IOException {
     // TODO Auto-generated method stub

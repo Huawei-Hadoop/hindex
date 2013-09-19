@@ -78,26 +78,6 @@ public interface RegionObserverExt {
       List<Mutation> mutations) throws IOException;
 
   /**
-   * This will be called by the scan flow when the current scanned row is being filtered out by the
-   * filter. The filter may be filtering out the row via any of the below scenarios
-   * <ol>
-   * <li>
-   * <code>boolean filterRowKey(byte [] buffer, int offset, int length)</code> returning true</li>
-   * <li>
-   * <code>boolean filterRow()</code> returning true</li>
-   * <li>
-   * <code>void filterRow(List<KeyValue> kvs)</code> removing all the kvs from the passed List</li>
-   * </ol>
-   * @param ctx the environment provided by the region server
-   * @param s the scanner
-   * @param currentRow The current rowkey which got filtered out.
-   * @return Returns whether more rows are available for the scanner or not.
-   * @throws IOException
-   */
-  boolean postFilterRow(final ObserverContext<RegionCoprocessorEnvironment> ctx,
-      final InternalScanner s, final byte[] currentRow) throws IOException;
-
-  /**
    * This will be called before PONR step as part of split transaction
    * @param ctx
    * @param splitKey
