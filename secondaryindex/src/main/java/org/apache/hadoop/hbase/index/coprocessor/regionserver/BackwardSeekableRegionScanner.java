@@ -140,11 +140,11 @@ public class BackwardSeekableRegionScanner implements SeekAndReadRegionScanner {
 
   @Override
   public boolean nextRaw(List<KeyValue> result, String metric) throws IOException {
-    return this.delegator.nextRaw(result, metric);
+    return next(result, metric);
   }
 
   @Override
   public boolean nextRaw(List<KeyValue> result, int limit, String metric) throws IOException {
-    return this.delegator.next(result, limit, metric);
+    return next(result, limit, metric);
   }
 }

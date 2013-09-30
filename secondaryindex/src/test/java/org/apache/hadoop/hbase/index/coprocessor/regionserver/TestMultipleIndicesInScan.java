@@ -1123,7 +1123,7 @@ public class TestMultipleIndicesInScan {
     Assert.assertTrue("Index flow should be used.", IndexRegionObserver.getIndexedFlowUsed());
     Assert.assertTrue("Index should fetch some seek points.",
       IndexRegionObserver.getSeekpointAdded());
-    Assert.assertEquals("Index should fetch 6 seek points", 3, IndexRegionObserver
+    Assert.assertEquals("Index should fetch 6 seek points", 6, IndexRegionObserver
         .getMultipleSeekPoints().size());
     Assert.assertEquals("Final result should have 2 rows.", 2, testRes.size());
   }
@@ -3045,7 +3045,7 @@ public class TestMultipleIndicesInScan {
       testRes.add(result[0]);
       result = scanner.next(1);
     }
-    assertTrue(testRes.size() == 2);
+    assertEquals(testRes.size(), 2);
   }
 
   @Test(timeout = 180000)
