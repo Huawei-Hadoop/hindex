@@ -82,7 +82,7 @@ public class TableIndexer {
     String[] tableName = conf.getStrings(TABLE_NAME_TO_INDEX);
     if (tableName == null) {
       System.out
-          .println("Wrong usage.  Usage is pass the table -Dindex.tablename='table1' "
+          .println("Wrong usage.  Usage is pass the table -Dtablename.to.index='table1' "
               + "-Dtable.columns.index='IDX1=>cf1:[q1->datatype& length],[q2],"
               + "[q3];cf2:[q1->datatype&length],[q2->datatype&length],[q3->datatype& lenght]#IDX2=>cf1:q5,q5'");
       System.out.println("The format used here is: ");
