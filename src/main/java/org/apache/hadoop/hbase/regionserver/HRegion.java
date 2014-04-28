@@ -2103,11 +2103,10 @@ public class HRegion implements HeapSize { // , Writable{
       long newSize;
       startRegionOperation();
 
-      if (coprocessorHost != null) {
-        coprocessorHost.postStartRegionOperation();
-      }
-
       try {
+        if (coprocessorHost != null) {
+          coprocessorHost.postStartRegionOperation();
+        }
         if (!initialized) {
           this.writeRequestsCount.increment();
           this.opMetrics.setWriteRequestCountMetrics(this.writeRequestsCount.get());
