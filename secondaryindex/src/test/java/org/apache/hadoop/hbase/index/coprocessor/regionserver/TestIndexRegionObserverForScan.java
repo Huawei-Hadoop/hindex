@@ -77,6 +77,7 @@ public class TestIndexRegionObserverForScan {
     conf.set(CoprocessorHost.MASTER_COPROCESSOR_CONF_KEY, IndexMasterObserver.class.getName());
     conf.set(CoprocessorHost.REGION_COPROCESSOR_CONF_KEY, IndexRegionObserver.class.getName());
     conf.set(CoprocessorHost.WAL_COPROCESSOR_CONF_KEY, IndexWALObserver.class.getName());
+    conf.setBoolean("hbase.use.secondary.index", true);
     UTIL.startMiniCluster(1);
   }
 
@@ -1093,7 +1094,8 @@ public class TestIndexRegionObserverForScan {
 
     ZooKeeperWatcher zkw = HBaseTestingUtility.getZooKeeperWatcher(UTIL);
     Configuration conf = UTIL.getConfiguration();
-    final String userTableName = "testCollocatedScansOnIndexedColumn";
+    final String userTableName = 
+        "testScanShouldBeSuccessfulEvenIfUserRegionAndIndexRegionAreNotCollocated";
     IndexedHTableDescriptor ihtd = new IndexedHTableDescriptor(userTableName);
     HColumnDescriptor hcd = new HColumnDescriptor("col");
     IndexSpecification iSpec = new IndexSpecification("ScanIndex");
