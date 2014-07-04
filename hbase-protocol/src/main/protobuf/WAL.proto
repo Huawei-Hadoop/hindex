@@ -1,0 +1,101 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+option java_package = "org.apache.hadoop.hbase.protobuf.generated";
+option java_outer_classname = "WALProtos";
+option java_generic_services = false;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+import "HBase.proto";
+
+message WALHeader {
+  optional bool has_compression = 1;
+  optional bytes encryption_key = 2;
+  optional bool has_tag_compression = 3;
+}
+
+// Protocol buffer version of HLogKey; see HLogKey comment, not really a key but WALEdit header for some KVs
+message WALKey {
+  required bytes encoded_region_name = 1;
+  required bytes table_name = 2;
+  required uint64 log_sequence_number = 3;
+  required uint64 write_time = 4;
+  /*
+  This parameter is deprecated in favor of clusters which 
+  contains the list of clusters that have consumed the change.
+  It is retained so that the log created by earlier releases (0.94) 
+  can be read by the newer releases.
+  */
+  optional UUID cluster_id = 5 [deprecated=true];
+
+  repeated FamilyScope scopes = 6;
+  optional uint32 following_kv_count = 7;
+
+  /*
+  This field contains the list of clusters that have
+  consumed the change
+  */
+  repeated UUID cluster_ids = 8;
+
+  optional uint64 nonceGroup = 9;
+  optional uint64 nonce = 10;
+
+/*
+  optional CustomEntryType custom_entry_type = 9;
+
+  enum CustomEntryType {
+    COMPACTION = 0;
+  }
+*/
+}
+
+enum ScopeType {
+  REPLICATION_SCOPE_LOCAL = 0;
+  REPLICATION_SCOPE_GLOBAL = 1;
+}
+
+message FamilyScope {
+  required bytes family = 1;
+  required ScopeType scope_type = 2;
+}
+
+/**
+ * Custom WAL entries
+ */
+
+/**
+ * Special WAL entry to hold all related to a compaction.
+ * Written to WAL before completing compaction.  There is
+ * sufficient info in the below message to complete later
+ * the * compaction should we fail the WAL write.
+ */
+message CompactionDescriptor {
+  required bytes table_name = 1; // TODO: WALKey already stores these, might remove
+  required bytes encoded_region_name = 2;
+  required bytes family_name = 3;
+  repeated string compaction_input = 4;
+  repeated string compaction_output = 5;
+  required string store_home_dir = 6;
+}
+
+/**
+ * A trailer that is appended to the end of a properly closed HLog WAL file.
+ * If missing, this is either a legacy or a corrupted WAL file.
+ */
+message WALTrailer {
+}

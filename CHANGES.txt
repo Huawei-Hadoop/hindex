@@ -1,0 +1,1609 @@
+HBase Change Log
+
+Release 0.98.3 - 6/1/2014
+
+** Sub-task
+    * [HBASE-10561] - Forward port: HBASE-10212 New rpc metric: number of active handler
+    * [HBASE-11161] - Provide example of POJO encoding with protobuf
+
+** Brainstorming
+    * [HBASE-11209] - Increase the default value for hbase.hregion.memstore.block.multipler from 2 to 4
+
+** Bug
+    * [HBASE-9445] - Snapshots should create column family dirs for empty regions
+    * [HBASE-10251] - Restore API Compat for PerformanceEvaluation.generateValue()
+    * [HBASE-10417] - index is not incremented in PutSortReducer#reduce()
+    * [HBASE-10831] - IntegrationTestIngestWithACL is not setting up LoadTestTool correctly
+    * [HBASE-11096] - stop method of Master and RegionServer coprocessor  is not invoked
+    * [HBASE-11117] - [AccessController] checkAndPut/Delete hook should check only Read permission
+    * [HBASE-11133] - Add an option to skip snapshot verification after Export
+    * [HBASE-11143] - Improve replication metrics
+    * [HBASE-11149] - Wire encryption is broken
+    * [HBASE-11168] - [docs] Remove references to RowLocks in post 0.96 docs.
+    * [HBASE-11169] - nit: fix incorrect javadoc in OrderedBytes about BlobVar and BlobCopy
+    * [HBASE-11189] - Subprocedure should be marked as complete upon failure
+    * [HBASE-11200] - AsyncWriter of FSHLog might throw ArrayIndexOutOfBoundsException
+    * [HBASE-11212] - Fix increment index in KeyValueSortReducer
+    * [HBASE-11217] - Race between SplitLogManager task creation + TimeoutMonitor
+    * [HBASE-11226] - Document and increase the default value for hbase.hstore.flusher.count
+    * [HBASE-11237] - Bulk load initiated by user other than hbase fails
+    * [HBASE-11251] - LoadTestTool should grant READ permission for the users that are given READ access for specific cells
+    * [HBASE-11253] - IntegrationTestWithCellVisibilityLoadAndVerify failing since HBASE-10326
+
+** Improvement
+    * [HBASE-6990] - Pretty print TTL
+    * [HBASE-9857] - Blockcache prefetch option
+    * [HBASE-11048] - Support setting custom priority per client RPC
+    * [HBASE-11119] - Update ExportSnapShot to optionally not use a tmp file on external file system
+    * [HBASE-11128] - Add -target option to ExportSnapshot to export with a different name
+    * [HBASE-11134] - Add a -list-snapshots option to SnapshotInfo
+    * [HBASE-11137] - Add mapred.TableSnapshotInputFormat
+    * [HBASE-11211] - LoadTestTool option for specifying number of regions per server
+    * [HBASE-11219] - HRegionServer#createRegionLoad() should reuse RegionLoad.Builder instance when called in a loop
+
+** Task
+    * [HBASE-11090] - Backport HBASE-11083 ExportSnapshot should provide capability to limit bandwidth consumption
+    * [HBASE-11227] - Mention 8- and 16-bit fixed-with encodings in OrderedBytes docstring
+
+** Test
+    * [HBASE-11104] - IntegrationTestImportTsv#testRunFromOutputCommitter misses credential initialization
+    * [HBASE-11166] - Categorize tests in hbase-prefix-tree module
+
+
+Release 0.98.2 - 5/7/2014
+
+** Sub-task
+    * [HBASE-10918] - [VisibilityController] System table backed ScanLabelGenerator 
+    * [HBASE-10963] - Refactor cell ACL tests
+    * [HBASE-10972] - OOBE in prefix key encoding
+    * [HBASE-11053] - Change DeleteTracker APIs to work with Cell
+    * [HBASE-11054] - Create new hook in StoreScanner to help user creating his own delete tracker
+    * [HBASE-11077] - [AccessController] Restore compatible early-out access denial
+
+** Bug
+    * [HBASE-10118] - Major compact keeps deletes with future timestamps
+    * [HBASE-10312] - Flooding the cluster with administrative actions leads to collapse
+    * [HBASE-10533] - commands.rb is giving wrong error messages on exceptions
+    * [HBASE-10611] - Description for hbase:acl table is wrong on master-status#catalogTables
+    * [HBASE-10705] - CompactionRequest#toString() may throw NullPointerException
+    * [HBASE-10830] - Integration test MR jobs attempt to load htrace jars from the wrong location
+    * [HBASE-10845] - Memstore snapshot size isn't updated in DefaultMemStore#rollback()
+    * [HBASE-10848] - Filter SingleColumnValueFilter combined with NullComparator does not work
+    * [HBASE-10850] - essential column family optimization is broken
+    * [HBASE-10854] - [VisibilityController] Apply MAX_VERSIONS from schema or request when scanning
+    * [HBASE-10860] - Insufficient AccessController covering permission check
+    * [HBASE-10879] - user_permission shell command on namespace doesn't work
+    * [HBASE-10890] - ExportSnapshot needs to add acquired token to job
+    * [HBASE-10895] - unassign a region fails due to the hosting region server is in FailedServerList
+    * [HBASE-10899] - [AccessController] Apply MAX_VERSIONS from schema or request when scanning
+    * [HBASE-10903] - HBASE-10740 regression; cannot pass commands for zk to run
+    * [HBASE-10949] - Reversed scan could hang
+    * [HBASE-10958] - [dataloss] Bulk loading with seqids can prevent some log entries from being replayed
+    * [HBASE-10964] - Delete mutation is not consistent with Put wrt timestamp
+    * [HBASE-10966] - RowCounter misinterprets column names that have colons in their qualifier
+    * [HBASE-10967] - CatalogTracker.waitForMeta should not wait indefinitely silently
+    * [HBASE-10970] - [AccessController] Issues with covering cell permission checks
+    * [HBASE-10979] - Fix AnnotationReadingPriorityFunction "scan" handling
+    * [HBASE-11011] - Avoid extra getFileStatus() calls on Region startup
+    * [HBASE-11030] - HBaseTestingUtility.getMiniHBaseCluster should be able to return null
+    * [HBASE-11038] - Filtered scans can bypass metrics collection
+    * [HBASE-11049] - HBase WALPlayer needs to add credentials to job to play to table
+    * [HBASE-11061] - Port HBASE-10948 Fix hbase table file 'x' mode to 0.96 / 0.98
+
+** Improvement
+    * [HBASE-10823] - Resolve LATEST_TIMESTAMP to current server time before scanning for ACLs
+    * [HBASE-10883] - Restrict the universe of labels and authorizations
+    * [HBASE-10884] - [REST] Do not disable block caching when scanning
+    * [HBASE-10892] - [Shell] Add support for globs in user_permission
+    * [HBASE-10902] - Make Secure Bulk Load work across remote secure clusters
+    * [HBASE-10916] - [VisibilityController] Stackable ScanLabelGenerators
+    * [HBASE-10950] - Add  a configuration point for MaxVersion of Column Family
+    * [HBASE-10951] - Use PBKDF2 to generate test encryption keys in the shell
+    * [HBASE-10952] - [REST] Let the user turn off block caching if desired
+    * [HBASE-11001] - Shell support for granting cell permissions for testing
+    * [HBASE-11002] - Shell support for changing cell visibility for testing
+    * [HBASE-11008] - Align bulk load, flush, and compact to require Action.CREATE
+    * [HBASE-11026] - Provide option to filter out all rows in PerformanceEvaluation tool
+    * [HBASE-11044] - [Shell] Show groups for user in 'whoami' output
+
+** Task
+    * [HBASE-10906] - Change error log for NamingException in TableInputFormatBase to WARN level
+    * [HBASE-10912] - setUp / tearDown in TestSCVFWithMiniCluster should be done once per run
+
+** Test
+    * [HBASE-10988] - Properly wait for server in TestThriftServerCmdLine
+    * [HBASE-11010] - TestChangingEncoding is unnecessarily slow
+    * [HBASE-11023] - Port HBASE-10488 "'mvn site' is broken due to org.apache.jasper.JspC not found" to 0.98
+    * [HBASE-11037] - Race condition in TestZKBasedOpenCloseRegion
+
+
+Release 0.98.1 - 4/6/2014
+
+** Sub-task
+    * [HBASE-5175] - Add DoubleColumnInterpreter
+    * [HBASE-9966] - Create IntegrationTest for Online Bloom Filter Change
+    * [HBASE-10169] - Batch coprocessor
+    * [HBASE-10526] - Using Cell instead of KeyValue in HFileOutputFormat
+    * [HBASE-10651] - Fix incorrect handling of IE that restores current thread's interrupt status within while/for loops in Replication
+    * [HBASE-10697] - Convert TestSimpleTotalOrderPartitioner to junit4 test
+    * [HBASE-10717] - TestFSHDFSUtils#testIsSameHdfs fails with IllegalArgumentException running against hadoop 2.3
+    * [HBASE-10723] - Convert TestExplicitColumnTracker to junit4 test
+    * [HBASE-10741] - Deprecate HTablePool and HTableFactory
+
+** Bug
+    * [HBASE-6642] - enable_all,disable_all,drop_all can call "list" command with regex directly.
+    * [HBASE-8304] - Bulkload fails to remove files if fs.default.name / fs.defaultFS is configured without default port
+    * [HBASE-8803] - region_mover.rb should move multiple regions at a time
+    * [HBASE-9294] - NPE in /rs-status during RS shutdown
+    * [HBASE-9708] - Improve Snapshot Name Error Message
+    * [HBASE-9721] - RegionServer should not accept regionOpen RPC intended for another(previous) server
+    * [HBASE-9778] - Add hint to ExplicitColumnTracker to avoid seeking
+    * [HBASE-9990] - HTable uses the conf for each "newCaller"
+    * [HBASE-10080] - Unnecessary call to locateRegion when creating an HTable instance
+    * [HBASE-10097] - Remove a region name string creation in HRegion#nextInternal
+    * [HBASE-10117] - Avoid synchronization in HRegionScannerImpl.isFilterDone
+    * [HBASE-10313] - Duplicate servlet-api jars in hbase 0.96.0
+    * [HBASE-10413] - Tablesplit.getLength returns 0
+    * [HBASE-10432] - Rpc retries non-recoverable error
+    * [HBASE-10436] - restore regionserver lists removed from hbase 0.96+ jmx
+    * [HBASE-10451] - Enable back Tag compression on HFiles
+    * [HBASE-10452] - Fix potential bugs in exception handlers
+    * [HBASE-10453] - PrefixTree encoding for tags can honor HCD#shouldCompressTags()
+    * [HBASE-10476] - HBase Master log grows very fast after stopped hadoop (due to connection exception)
+    * [HBASE-10481] - API Compatibility JDiff script does not properly handle arguments in reverse order
+    * [HBASE-10482] - ReplicationSyncUp doesn't clean up its ZK, needed for tests
+    * [HBASE-10485] - PrefixFilter#filterKeyValue() should perform filtering on row key
+    * [HBASE-10486] - ProtobufUtil Append & Increment deserialization lost cell level timestamp
+    * [HBASE-10493] - InclusiveStopFilter#filterKeyValue() should perform filtering on row key
+    * [HBASE-10495] - upgrade script is printing usage two times with help option.
+    * [HBASE-10500] - Some tools OOM when BucketCache is enabled
+    * [HBASE-10501] - Improve IncreasingToUpperBoundRegionSplitPolicy to avoid too many regions
+    * [HBASE-10514] - Forward port HBASE-10466, possible data loss when failed flushes
+    * [HBASE-10527] - TestTokenAuthentication fails with the IBM JDK
+    * [HBASE-10534] - Rowkey in TsvImporterTextMapper initializing with wrong length
+    * [HBASE-10537] - Let the ExportSnapshot mapper fail and retry on error
+    * [HBASE-10539] - HRegion.addAndGetGlobalMemstoreSize returns previous size
+    * [HBASE-10545] - RS Hangs waiting on region to close on shutdown; has to timeout before can go down
+    * [HBASE-10546] - Two scanner objects are open for each hbase map task but only one scanner object is closed
+    * [HBASE-10547] - TestFixedLengthWrapper#testReadWrite occasionally fails with the IBM JDK
+    * [HBASE-10548] - Correct commons-math dependency version
+    * [HBASE-10552] - HFilePerformanceEvaluation.GaussianRandomReadBenchmark fails sometimes.
+    * [HBASE-10556] - Possible data loss due to non-handled DroppedSnapshotException for user-triggered flush from client/shell
+    * [HBASE-10563] - Set name for FlushHandler thread
+    * [HBASE-10564] - HRegionServer.nextLong should be removed since it's not used anywhere, or should be used somewhere it meant to
+    * [HBASE-10565] - FavoredNodesPlan accidentally uses an internal Netty type
+    * [HBASE-10567] - Add overwrite manifest option to ExportSnapshot
+    * [HBASE-10575] - ReplicationSource thread can't be terminated if it runs into the loop to contact peer's zk ensemble and fails continuously
+    * [HBASE-10579] - [Documentation]: ExportSnapshot tool package incorrectly documented
+    * [HBASE-10580] - IntegrationTestingUtility#restoreCluster leak resource when running in a mini cluster mode
+    * [HBASE-10581] - ACL znode are left without PBed during upgrading hbase0.94* to hbase0.96+
+    * [HBASE-10582] - 0.94->0.96 Upgrade: ACL can't be repopulated when ACL table contains row for table '-ROOT' or '.META.'
+    * [HBASE-10585] - Avoid early creation of Node objects in LRUDictionary.BidirectionalLRUMap
+    * [HBASE-10586] - hadoop2-compat IPC metric registred twice
+    * [HBASE-10587] - Master metrics clusterRequests is wrong
+    * [HBASE-10594] - Speed up TestRestoreSnapshotFromClient
+    * [HBASE-10598] - Written data can not be read out because MemStore#timeRangeTracker might be updated concurrently
+    * [HBASE-10600] - HTable#batch() should perform validation on empty Put
+    * [HBASE-10604] - Fix parseArgs javadoc
+    * [HBASE-10608] - Acquire the FS Delegation Token for Secure ExportSnapshot
+    * [HBASE-10614] - Master could not be stopped
+    * [HBASE-10618] - User should not be allowed to disable/drop visibility labels table
+    * [HBASE-10621] - Unable to grant user permission to namespace
+    * [HBASE-10622] - Improve log and Exceptions in Export Snapshot 
+    * [HBASE-10624] - Fix 2 new findbugs warnings introduced by HBASE-10598
+    * [HBASE-10627] - A logic mistake in HRegionServer isHealthy
+    * [HBASE-10631] - Avoid extra seek on FileLink open
+    * [HBASE-10632] - Region lost in limbo after ArrayIndexOutOfBoundsException during assignment
+    * [HBASE-10639] - Unload script displays wrong counts (off by one) when unloading regions 
+    * [HBASE-10644] - TestSecureExportSnapshot#testExportFileSystemState fails on hadoop-1
+    * [HBASE-10656] -  high-scale-lib's Counter depends on Oracle (Sun) JRE, and also has some bug
+    * [HBASE-10660] - MR over snapshots can OOM when alternative blockcache is enabled
+    * [HBASE-10662] - RegionScanner is never closed if the region has been moved-out or re-opened when performing scan request
+    * [HBASE-10665] - TestCompaction and TestCompactionWithCoprocessor run too long
+    * [HBASE-10666] - TestMasterCoprocessorExceptionWithAbort hangs at shutdown
+    * [HBASE-10668] - TestExportSnapshot runs too long
+    * [HBASE-10669] - [hbck tool] Usage is wrong for hbck tool for -sidelineCorruptHfiles option
+    * [HBASE-10675] - IntegrationTestIngestWithACL should allow User to be passed as Parameter
+    * [HBASE-10677] - boundaries check in hbck throwing IllegalArgumentException
+    * [HBASE-10679] - Both clients get wrong scan results if the first scanner expires and the second scanner is created with the same scannerId on the same region
+    * [HBASE-10682] - region_mover.rb throws "can't convert nil into String" for regions moved
+    * [HBASE-10685] - [WINDOWS] TestKeyStoreKeyProvider fails on windows
+    * [HBASE-10686] - [WINDOWS] TestStripeStoreFileManager fails on windows
+    * [HBASE-10694] - TableSkewCostFunction#cost() casts integral division result to double
+    * [HBASE-10706] - Disable writeToWal in tests where possible
+    * [HBASE-10716] - [Configuration]: hbase.regionserver.region.split.policy should be part of hbase-default.xml
+    * [HBASE-10718] - TestHLogSplit fails when it sets a KV size to be negative
+    * [HBASE-10726] - Fix java.lang.ArrayIndexOutOfBoundsException in StochasticLoadBalancer$LocalityBasedCandidateGenerator
+    * [HBASE-10731] - Fix environment variables typos in scripts
+    * [HBASE-10735] - [WINDOWS] Set -XX:MaxPermSize for unit tests
+    * [HBASE-10736] - Fix Javadoc warnings introduced in HBASE-10169
+    * [HBASE-10737] - HConnectionImplementation should stop RpcClient on close
+    * [HBASE-10738] - AssignmentManager should shut down executors on stop
+    * [HBASE-10739] - RS web UI NPE if master shuts down sooner
+    * [HBASE-10745] - Access ShutdownHook#fsShutdownHooks should be synchronized
+    * [HBASE-10749] - CellComparator.compareStatic() compares type wrongly
+    * [HBASE-10751] - TestHRegion testWritesWhileScanning occasional fail since HBASE-10514 went in
+    * [HBASE-10760] - Wrong methods' names in ClusterLoadState class
+    * [HBASE-10762] - clone_snapshot doesn't check for missing namespace
+    * [HBASE-10763] - Backport HBASE-10549(When there is a hole, LoadIncrementalHFiles will hang in an infinite loop.) to 0.98
+    * [HBASE-10766] - SnapshotCleaner allows to delete referenced files
+    * [HBASE-10770] - Don't exit from the Canary daemon mode if no regions are present
+    * [HBASE-10793] - AuthFailed as a valid zookeeper state 
+    * [HBASE-10799] - [WINDOWS] TestImportTSVWithVisibilityLabels.testBulkOutputWithTsvImporterTextMapper  fails on windows
+    * [HBASE-10802] - CellComparator.compareStaticIgnoreMvccVersion compares type wrongly
+    * [HBASE-10804] - Add a validations step to ExportSnapshot
+    * [HBASE-10805] - Speed up KeyValueHeap.next() a bit
+    * [HBASE-10806] - Two protos missing in hbase-protocol/pom.xml
+    * [HBASE-10809] - HBaseAdmin#deleteTable fails when META region happen to move around same time
+    * [HBASE-10825] - Add copy-from option to ExportSnapshot
+    * [HBASE-10829] - Flush is skipped after log replay if the last recovered edits file is skipped
+    * [HBASE-10833] - Region assignment may fail during cluster start up
+    * [HBASE-10838] - Insufficient AccessController covering permission check
+    * [HBASE-10860] - Insufficient AccessController covering permission check
+    * [HBASE-10862] - Update config field names in hbase-default.xml description for hbase.hregion.memstore.block.multiplier
+    * [HBASE-10863] - Scan doesn't return rows for user who has authorization by visibility label in secure deployment
+
+** Improvement
+    * [HBASE-7849] - Provide administrative limits around bulkloads of files into a single region
+    * [HBASE-8076] - add better doc for HBaseAdmin#offline API.
+    * [HBASE-8604] - improve reporting of incorrect peer address in replication
+    * [HBASE-9501] - Provide throttling for replication
+    * [HBASE-9999] - Add support for small reverse scan
+    * [HBASE-10389] - Add namespace help info in table related shell commands
+    * [HBASE-10487] - Avoid allocating new KeyValue and according bytes-copying for appended kvs which don't have existing values
+    * [HBASE-10498] - Add new APIs to load balancer interface
+    * [HBASE-10511] - Add latency percentiles on PerformanceEvaluation
+    * [HBASE-10518] - DirectMemoryUtils.getDirectMemoryUsage spams when none is configured
+    * [HBASE-10570] - Allow overrides of Surefire secondPartForkMode and testFailureIgnore
+    * [HBASE-10589] - Reduce unnecessary TestRowProcessorEndpoint resource usage
+    * [HBASE-10592] - Refactor PerformanceEvaluation tool
+    * [HBASE-10597] - IOEngine#read() should return the number of bytes transferred
+    * [HBASE-10638] - Improve error message when there is no region server available for move
+    * [HBASE-10678] - Make verifyrep tool implement toolrunner
+    * [HBASE-10693] - Correct declarations of Atomic* fields from 'volatile' to 'final'
+    * [HBASE-10744] - AM#CloseRegion no need to retry on FailedServerException
+    * [HBASE-10769] - hbase/bin/hbase-cleanup.sh has wrong usage string
+    * [HBASE-10797] - Add support for -h and --help to rolling_restart.sh and fix the usage string output
+    * [HBASE-10812] - Backport HBASE-9426(Make custom distributed barrier procedure pluggable)  to 0.98.x
+
+** New Feature
+    * [HBASE-8751] - Enable peer cluster to choose/change the ColumnFamilies/Tables it really want to replicate from a source cluster
+
+** Task
+    * [HBASE-10612] - Remove unnecessary dependency on org.eclipse.jdt:core
+    * [HBASE-10670] - HBaseFsck#connect() should use new connection
+    * [HBASE-10700] - IntegrationTestWithCellVisibilityLoadAndVerify should allow current user to be the admin
+    * [HBASE-10740] - Upgrade zookeeper to 3.4.6 release
+    * [HBASE-10786] - If snapshot verification fails with 'Regions moved', the message should contain the name of region causing the failure
+
+** Test
+    * [HBASE-10543] - Two rare test failures with TestLogsCleaner and TestSplitLogWorker
+    * [HBASE-10649] - TestMasterMetrics fails occasionally
+    * [HBASE-10764] - TestLoadIncrementalHFilesSplitRecovery#testBulkLoadPhaseFailure takes too long
+    * [HBASE-10767] - Load balancer may interfere with tests in TestHBaseFsck
+    * [HBASE-10782] - Hadoop2 MR tests fail occasionally because of mapreduce.jobhistory.address is no set in job conf
+    * [HBASE-10828] - TestRegionObserverInterface#testHBase3583 should wait for all regions to be assigned
+    * [HBASE-10852] - TestDistributedLogSplitting#testDisallowWritesInRecovering occasionally fails
+    * [HBASE-10868] - TestAtomicOperation should close HRegion instance after each subtest
+
+
+Release 0.98.0 - 2/16/2014
+
+** Sub-task
+    * [HBASE-4285] - partitions file created in user's home directory by importtsv
+    * [HBASE-5050] - [rest] SPNEGO-based authentication
+    * [HBASE-5995] - Fix and reenable TestLogRolling.testLogRollOnPipelineRestart
+    * [HBASE-6330] - TestImportExport has been failing against hadoop 0.23/2.0 profile
+    * [HBASE-6873] - Clean up Coprocessor loading failure handling
+    * [HBASE-6945] - Compilation errors when using non-Sun JDKs to build HBase-0.94
+    * [HBASE-7533] - Write an RPC Specification for 0.96
+    * [HBASE-7605] - TestMiniClusterLoadSequential fails in trunk build on hadoop 2
+    * [HBASE-7606] - TestJoinedScanners fails in trunk build on hadoop 2.0
+    * [HBASE-7615] - Add metrics for snapshots
+    * [HBASE-7636] - TestDistributedLogSplitting#testThreeRSAbort fails against hadoop 2.0
+    * [HBASE-7662] - [Per-KV security] Per cell ACLs stored in tags
+    * [HBASE-7663] - [Per-KV security] Visibility labels
+    * [HBASE-7679] - implement store file management for stripe compactions
+    * [HBASE-7680] - implement compaction policy for stripe compactions
+    * [HBASE-7747] - Import tools should use a combiner to merge Puts
+    * [HBASE-7801] - Allow a deferred sync option per Mutation.
+    * [HBASE-7807] - Introduce HRegionFileSystem and move region fs related code
+    * [HBASE-7808] - Refactor Store to use HRegionFileSystem
+    * [HBASE-7809] - Refactor Split/Merge to use HRegionFileSystem
+    * [HBASE-7841] - Parallelize offline snapshot in DisabledTableSnapshotHandler
+    * [HBASE-7905] - Add passing of optional cell blocks over rpc
+    * [HBASE-7934] - TableMapReduceUtil doesn't include all dependency jars in new modular build
+    * [HBASE-7938] - Add integration test for ImportTsv/LoadIncrementalHFiles workflow
+    * [HBASE-7944] - Replication leaks file reader resource & not reset currentNbOperations
+    * [HBASE-7967] - implement compactor for stripe compactions
+    * [HBASE-7975] - ImportTsv documentation update for table creation
+    * [HBASE-7995] - Export$Exporter could be replaced with IdentityTableMapper
+    * [HBASE-7996] - Clean up resource leak in MultiTableInputFormat
+    * [HBASE-8000] - create integration/perf tests for stripe compactions
+    * [HBASE-8006] - use FSUtils to get/set hbase.rootdir
+    * [HBASE-8008] - Fix DirFilter usage to be consistent
+    * [HBASE-8011] - Refactor ImportTsv
+    * [HBASE-8094] - TestTableInputFormatScan doesn't assert anything
+    * [HBASE-8101] - Cleanup: findbugs and javadoc warning fixes as well as making it illegal passing null row to Put/Delete, etc.
+    * [HBASE-8156] - Support for Namenode HA for non-idempotent operations
+    * [HBASE-8189] - Shell commands of online region merge
+    * [HBASE-8190] - Add documentation of region merges to the book
+    * [HBASE-8201] - OrderedBytes: an ordered encoding strategy
+    * [HBASE-8316] - JoinedHeap for non essential column families should reseek instead of seek
+    * [HBASE-8324] - TestHFileOutputFormat.testMRIncremental* fails against hadoop2 profile
+    * [HBASE-8342] - TestTableInputFormatScan#testScanFromConfiguration fails on hadoop2 profile
+    * [HBASE-8349] - TestLogRolling#TestLogRollOnDatanodeDeath hangs under hadoop2 profile
+    * [HBASE-8375] - Durability setting per table
+    * [HBASE-8392] - TestMetricMBeanBase#testGetAttribute is flakey under hadoop2 profile
+    * [HBASE-8408] - Implement namespace
+    * [HBASE-8409] - Security support for namespaces
+    * [HBASE-8424] - IntegrationTestImportTsv missing Apache License
+    * [HBASE-8429] - TestMetricsWALSourceImpl from hbase-hadoop2-compat module missing Apache license.
+    * [HBASE-8453] - TestImportExport failing again due to configuration issues
+    * [HBASE-8469] - [hadoop2] Several tests break because of HDFS-4305
+    * [HBASE-8477] - [hadoop2] TestTableInputFormatScan* fails intermittently with PrivilegedActionException
+    * [HBASE-8478] - HBASE-2231 breaks TestHRegion#testRecoveredEditsReplayCompaction under hadoop2 profile
+    * [HBASE-8497] - Protobuf WAL also needs a trailer 
+    * [HBASE-8528] - [hadoop2] TestMultiTableInputFormat always fails on hadoop with YARN-129 applied
+    * [HBASE-8583] - Create a new IntegrationTestBigLinkedListWithChaosMonkey
+    * [HBASE-8633] - Document namespaces in HBase book
+    * [HBASE-8643] - Do not log full classnames in logs, just the last two levels
+    * [HBASE-8657] - Miscellaneous log fixups for hbase-it; tidier logging, fix a few NPEs
+    * [HBASE-8661] - [rest] support REST over https
+    * [HBASE-8662] - [rest] support impersonation
+    * [HBASE-8693] - DataType: provide extensible type API
+    * [HBASE-8703] - [WINDOWS] Timed-out processes exit with non-zero code causing HealthChecker to report incorrectly
+    * [HBASE-8766] - [WINDOWS] bin/hbase.cmd zkcli is broken
+    * [HBASE-8774] - Add BatchSize and Filter to Thrift2
+    * [HBASE-8779] - Add mutateRow method support to Thrift2
+    * [HBASE-8819] - Port HBASE-5428 to Thrift 2
+    * [HBASE-8826] - Ensure HBASE-8695 is covered in Thrift 2
+    * [HBASE-8832] - Ensure HBASE-4658  is supported by Thrift 2
+    * [HBASE-8838] - [WINDOWS] FileLink assumptions are broken under NTFS
+    * [HBASE-8876] - Addendum to HBASE-8774 Add BatchSize and Filter to Thrift2 - Add BatchSize Test
+    * [HBASE-8890] - Fix Thrift 2 example class location
+    * [HBASE-8938] - Thrift2 does not close scanner instance
+    * [HBASE-8946] - Add a new function to Thrift 2 to open scanner, get results and close scanner
+    * [HBASE-8947] - Thrift 2 : Replace "bool writeToWAL" with "TDurability durability" 
+    * [HBASE-8948] - Bound table pool size in Thrift 2 server
+    * [HBASE-9045] - Support Dictionary based Tag compression in HFiles
+    * [HBASE-9073] - Up retries on TestSnapshotFromMaster; retries only once
+    * [HBASE-9078] - Downstream build including hbase-client fails because can't find com.sun.jdmk:jmxtools
+    * [HBASE-9091] - Update ByteRange to maintain consumer's position
+    * [HBASE-9110] - Meta region edits not recovered while migrating to 0.96.0
+    * [HBASE-9118] - Optimization in HFile V3 when no tags are present in a file
+    * [HBASE-9128] - Drop the '.' prefix from names under hbase.rootdir after namespaces goes in
+    * [HBASE-9130] - Invert the name of namespace commands to match the snapshots and replication form
+    * [HBASE-9136] - RPC side changes to have a different codec for server to client communication
+    * [HBASE-9137] - Add Tag dictionary in WAL compression
+    * [HBASE-9165] - Improvements to addDependencyJars
+    * [HBASE-9179] - TestSecureLoadIncrementalHFilesSplitRecovery hangs
+    * [HBASE-9187] - HBaseAdmin#testTableExists can go zombie
+    * [HBASE-9191] - Update Loadbalancer method to throw HBaseIOException
+    * [HBASE-9241] - Add cp hook before initialize variable set to true in master intialization
+    * [HBASE-9244] - Add CP hooks around StoreFileReader creation
+    * [HBASE-9246] - Remove ROOT_TABLEDESC, ROOT_REGIONINFO, and ROOT_TABLE_NAME
+    * [HBASE-9247] - Cleanup Key/KV/Meta/MetaKey Comparators
+    * [HBASE-9249] - Add cp hook before setting PONR in split
+    * [HBASE-9259] - Update hadoop versions grid in refguide adding hadoop-2.1.x and a note on hadoop-2.0.x versions
+    * [HBASE-9261] - Add cp hooks after {start|close}RegionOperation
+    * [HBASE-9262] - Make KeyValue.KEY_COMPARATOR default for HFile WriterFactory
+    * [HBASE-9263] - Add initialize method to load balancer interface
+    * [HBASE-9276] - List tables API should filter with isSystemTable
+    * [HBASE-9277] - REST should use listTableNames to list tables
+    * [HBASE-9279] - Thrift should use listTableNames to list tables
+    * [HBASE-9317] - Define timeout period for TestHBaseFsck#testSplitDaughtersNotInMeta
+    * [HBASE-9359] - Convert KeyValue to Cell in hbase-client module - Result/Put/Delete, ColumnInterpreter
+    * [HBASE-9379] - Doc that localfs is not durable
+    * [HBASE-9477] - Add deprecation compat shim for Result#raw and Result#list for 0.96
+    * [HBASE-9478] - Make Cell @interfaceAudience.public and evolving.
+    * [HBASE-9487] - create_namespace with property value throws error
+    * [HBASE-9489] - Add cp hooks in online merge before and after setting PONR
+    * [HBASE-9493] - Rename CellUtil#get*Array to CellUtil#clone*
+    * [HBASE-9516] - Mark hbase-common classes missing @InterfaceAudience annotation as Private
+    * [HBASE-9517] - Include only InterfaceAudiencePublic elements in generated Javadoc
+    * [HBASE-9523] - Audit of hbase-common @InterfaceAudience.Public apis.
+    * [HBASE-9529] - Audit of hbase-client @InterfaceAudience.Public apis
+    * [HBASE-9546] - HFileContext should adopt Builder pattern
+    * [HBASE-9585] - Update javadoc builder in pom to exclude empty packages in user api javadoc
+    * [HBASE-9586] - Deprecate remove o.a.h.h.util.Keying class.
+    * [HBASE-9652] - Remove HServerLoad092
+    * [HBASE-9677] - Remove MasterAdmin and MasterMonitor protos; have MasterService provide these functions
+    * [HBASE-9684] - Remove MultiRowMutationProcessorMessages.proto
+    * [HBASE-9711] - Improve HBASE-9428 - avoid copying bytes for RegexFilter unless necessary
+    * [HBASE-9846] - Integration test and LoadTestTool support for cell ACLs
+    * [HBASE-9854] - initial documentation for stripe compactions
+    * [HBASE-9858] - Integration test and LoadTestTool support for cell Visibility
+    * [HBASE-9907] - Rig to fake a cluster so can profile client behaviors
+    * [HBASE-9917] - Fix it so Default Connection Pool does not spin up max threads even when not needed
+    * [HBASE-9941] - The context ClassLoader isn't set while calling into a coprocessor
+    * [HBASE-9997] - Add per KV security details to HBase book
+    * [HBASE-10035] - Fix Potential Resource Leak in IPCUtils
+    * [HBASE-10036] - Fix Potential Resource Leak in MetaReader
+    * [HBASE-10037] - Fix potential Resource Leak in EncodedDataBlock
+    * [HBASE-10038] - Fix potential Resource Leak in ZNodeCleaner
+    * [HBASE-10039] - Fix potential Resource Leak in RpcServer
+    * [HBASE-10043] - Fix Potential Resouce Leak in MultiTableInputFormatBase
+    * [HBASE-10094] - Add batching to HLogPerformanceEvaluation
+    * [HBASE-10110] - Fix Potential Resource Leak in StoreFlusher
+    * [HBASE-10124] - Make Sub Classes Static When Possible
+    * [HBASE-10143] - Clean up dead local stores in FSUtils
+    * [HBASE-10297] - LoadAndVerify Integration Test for cell visibility
+    * [HBASE-10391] - Deprecate KeyValue#getBuffer
+    * [HBASE-10550] - Register HBase tokens with ServiceLoader
+
+** Bug
+    * [HBASE-3787] - Increment is non-idempotent but client retries RPC
+    * [HBASE-5356] - region_mover.rb can hang if table region it belongs to is deleted.
+    * [HBASE-5472] - LoadIncrementalHFiles loops forever if the target table misses a CF
+    * [HBASE-5946] - Thrift Filter Language documentation is inconsistent
+    * [HBASE-6031] - RegionServer does not go down while aborting
+    * [HBASE-6347] - -ROOT- and .META. are stale in table.jsp if they moved
+    * [HBASE-6915] - String and ConcurrentHashMap sizes change on jdk7; makes TestHeapSize fail
+    * [HBASE-7111] - hbase zkcli will not start if the zookeeper server chosen to connect to is unavailable
+    * [HBASE-7114] - Increment does not extend Mutation but probably should
+    * [HBASE-7122] - Proper warning message when opening a log file with no entries (idle cluster)
+    * [HBASE-7153] - print gc option in hbase-env.sh affects hbase zkcli
+    * [HBASE-7192] - Move TestHBase7051.java into TestAtomicOperation.java
+    * [HBASE-7226] - HRegion.checkAndMutate uses incorrect comparison result for <, <=, > and >=
+    * [HBASE-7255] - KV size metric went missing from StoreScanner.
+    * [HBASE-7296] - Add hbase.master.loadbalancer.class in the documentation
+    * [HBASE-7325] - Replication reacts slowly on a lightly-loaded cluster
+    * [HBASE-7380] - [replication] When transferring queues, check if the peer still exists before copying the znodes
+    * [HBASE-7391] - Review/improve HLog compression's memory consumption
+    * [HBASE-7401] - Remove warning message about running 'hbase migrate'
+    * [HBASE-7458] - TestReplicationWithCompression fails intermittently in both PreCommit and trunk builds
+    * [HBASE-7481] - Allow IOExceptions to be thrown from Filter methods
+    * [HBASE-7482] - Port HBASE-7442 HBase remote CopyTable not working when security enabled to trunk
+    * [HBASE-7488] - Implement HConnectionManager.locateRegions which is currently returning null
+    * [HBASE-7501] - Introduce MetaEditor method that both adds and deletes rows in .META. table
+    * [HBASE-7546] - Obtain a table read lock on region split operations
+    * [HBASE-7590] - Add a costless notifications mechanism from master to regionservers & clients
+    * [HBASE-7597] - TestHBaseFsck#testRegionShouldNotBeDeployed seems to be flaky
+    * [HBASE-7600] - TestAdmin.testCreateBadTables is failing occasionally
+    * [HBASE-7634] - Replication handling of changes to peer clusters is inefficient
+    * [HBASE-7639] - Enable online schema update by default 
+    * [HBASE-7700] - TestColumnSeeking is mathematically bound to fail
+    * [HBASE-7709] - Infinite loop possible in Master/Master replication
+    * [HBASE-7723] - Remove NameNode URI from ZK splitlogs
+    * [HBASE-7726] - Family Dir is not removed using modifyTable()
+    * [HBASE-7817] - Suggested JDWP debug options in hbase-env.sh are wrong
+    * [HBASE-7869] - Provide way to not start LogSyncer thread
+    * [HBASE-7871] - HBase can be stuck when closing regions concurrently 
+    * [HBASE-7876] - Got exception when manually triggers a split on an empty region
+    * [HBASE-7878] - recoverFileLease does not check return value of recoverLease
+    * [HBASE-7921] - TestHFileBlock.testGzipCompression should ignore the block checksum
+    * [HBASE-7933] - NPE in TableLockManager
+    * [HBASE-7940] - Upgrade version to 0.97-SNAPSHOT in pom.xml files
+    * [HBASE-7945] - Remove flaky TestCatalogTrackerOnCluster
+    * [HBASE-7947] - Custom compaction requests should have test for adding to wrong list
+    * [HBASE-7951] - TestNodeHealthCheckChore.testHealthChecker failed 0.95 build #3
+    * [HBASE-7953] - Some HFilePerformanceEvaluation tests might fail because of scanner.getValue when there is no more row
+    * [HBASE-7954] - Fix the retrying logic of memstore flushes to avoid extra sleep
+    * [HBASE-7955] - Remove log "ERROR snapshot.SnapshotFileCache: Snapshot directory doesn't exist"
+    * [HBASE-7956] - RegionCoprocessorRpcChannel should log rpc requests at TRACE level rather than DEBUG
+    * [HBASE-7957] - CloneSnapshotHandler.prepare() is not called by SnapshotManager
+    * [HBASE-7961] - truncate on disabled table should throw TableNotEnabledException.
+    * [HBASE-7963] - HBase VerifyReplication not working when security enabled
+    * [HBASE-7966] - ACL tests fail on trunk (flaky)
+    * [HBASE-7968] - Packaging of Trunk and 0.95 does not create the dependent jars in the lib folder
+    * [HBASE-7969] - Rename HBaseAdmin#getCompletedSnapshots as HBaseAdmin#listSnapshots
+    * [HBASE-7980] - TestZKInterProcessReadWriteLock fails occasionally in QA test run
+    * [HBASE-7982] - TestReplicationQueueFailover* runs for a minute, spews 3/4million lines complaining 'Filesystem closed', has an NPE, and still passes?
+    * [HBASE-7986] - [REST] Make HTablePool size configurable
+    * [HBASE-7992] - provide pre/post region offline hooks for HMaster.offlineRegion()
+    * [HBASE-8002] - Make TimeOut Management for Assignment optional in master and regionservers
+    * [HBASE-8003] - Threads#getBoundedCachedThreadPool harcodes the time unit to seconds
+    * [HBASE-8004] - Creating an existing table from Shell does not throw TableExistsException
+    * [HBASE-8005] - DemoClient.cpp   can not be built correctly
+    * [HBASE-8007] - Adopt TestLoadAndVerify from BigTop
+    * [HBASE-8012] - Reseek should position to the beginning of file for the first time it is invoked with a KV smaller than the first KV in file
+    * [HBASE-8017] - Upgrade hadoop 1 dependency to 1.1.2
+    * [HBASE-8018] - Add "Flaky Testcase Detector" tool into dev-tools
+    * [HBASE-8021] - TestSplitTransactionOnCluster.testShouldThrowIOExceptionIfStoreFileSizeIsEmptyAndShouldSuccessfullyExecuteRollback() fails consistently
+    * [HBASE-8022] - Site target fails
+    * [HBASE-8025] - zkcli fails when SERVER_GC_OPTS is enabled
+    * [HBASE-8027] - hbase-7994 redux; shutdown hbase-example unit tests
+    * [HBASE-8030] - znode  path of online region servers is hard coded in rolling_restart.sh
+    * [HBASE-8032] - TestNodeHealthCheckChore.testHealthChecker failed 0.95 build #36
+    * [HBASE-8033] - Break TestRestoreSnapshotFromClient into TestRestoreSnapshotFromClient and TestCloneSnapshotFromClient
+    * [HBASE-8036] - ProtobufUtil.multi behavior is inconsistent in case of errors
+    * [HBASE-8041] - WebUI doesn't display snapshots correctly
+    * [HBASE-8042] - Offline Meta Repair no longer points to the correct location
+    * [HBASE-8043] - Fix a few javadoc warnings...
+    * [HBASE-8044] - split/flush/compact/major_compact from hbase shell does not work for region key with \x format
+    * [HBASE-8050] - Small fix to book/hbase.tests.html
+    * [HBASE-8051] - 0.95 build failing on site goal: 'failed to get report for org.apache.maven.plugins:maven-project-info-reports-plugin: Could not find goal 'dependency-info''
+    * [HBASE-8052] - TestHBaseFsck#testQuarantineMissingFamdir fails sporadically
+    * [HBASE-8055] - Null check missing in StoreFile.Reader.getMaxTimestamp()
+    * [HBASE-8057] - RegionLoad needs a toString implementation
+    * [HBASE-8058] - Upgrade site plugin; fix assembly doc up on jenkins builds
+    * [HBASE-8060] - "Num compacting KVs" diverges from "num compacted KVs" over time
+    * [HBASE-8062] - Replace HBaseFsck.debugLsr() in TestFlushSnapshotFromClient with FSUtils.logFileSystemState()
+    * [HBASE-8067] - TestHFileArchiving.testArchiveOnTableDelete sometimes fails
+    * [HBASE-8068] - TestMasterMetricsWrapper failed in 0.95 #60 jenkins
+    * [HBASE-8069] - TestHLog is dependent on the execution order
+    * [HBASE-8096] - [replication] NPE while replicating a log that is acquiring a new block from HDFS 
+    * [HBASE-8097] - MetaServerShutdownHandler may potentially keep bumping up DeadServer.numProcessing
+    * [HBASE-8099] - ReplicationZookeeper.copyQueuesFromRSUsingMulti should not return any queues if it failed to execute.
+    * [HBASE-8108] - Add m2eclispe lifecycle mapping to hbase-common
+    * [HBASE-8112] - Deprecate HTable#batch(final List<? extends Row>)
+    * [HBASE-8116] - TestSnapshotCloneIndependence fails in trunk builds intermittently
+    * [HBASE-8118] - TestTablePermission depends on the execution order
+    * [HBASE-8119] - Optimize StochasticLoadBalancer
+    * [HBASE-8122] - TestAccessController depends on the execution order
+    * [HBASE-8123] - Replace HashMap/HashSet with TreeMap/TreeSet where byte[] is used as key
+    * [HBASE-8130] - initialize TableLockManager before initializing AssignmentManager
+    * [HBASE-8131] - Create table handler needs to handle failure cases.
+    * [HBASE-8133] - avoid assign for disabling table regions(OPENING/PENDING_OPEN) in SSH
+    * [HBASE-8135] - Mutation should implement HeapSize
+    * [HBASE-8138] - Using [packed=true] for repeated field of primitive numeric types (types which use the varint, 32-bit, or 64-bit wire types)
+    * [HBASE-8140] - TableMapReduceUtils#addDependencyJar fails when nested inside another MR job
+    * [HBASE-8142] - Sporadic TestZKProcedureControllers failures on trunk
+    * [HBASE-8143] - HBase on Hadoop 2 with local short circuit reads (ssr) causes OOM 
+    * [HBASE-8144] - Limit number of attempts to assign a region
+    * [HBASE-8146] - IntegrationTestBigLinkedList does not work on distributed setup
+    * [HBASE-8151] - Decode memstoreTS in HFileReaderV2 only when necessary
+    * [HBASE-8158] - Backport HBASE-8140 "TableMapReduceUtils#addDependencyJar fails when nested inside another MR job"
+    * [HBASE-8160] - HMaster#move doesn't check if master initialized
+    * [HBASE-8161] - setting blocking file count on table level doesn't work
+    * [HBASE-8162] - Fix import of hbase-default.xml into refguide; broke
+    * [HBASE-8164] - TestTableLockManager fails intermittently in trunk builds
+    * [HBASE-8165] - Move to Hadoop 2.1.0-beta from 2.0.x-alpha (WAS: Update our protobuf to 2.5 from 2.4.1)
+    * [HBASE-8166] - Avoid writing the memstoreTS into HFiles when possible
+    * [HBASE-8169] - TestMasterFailover#testMasterFailoverWithMockedRITOnDeadRS may fail due to regions randomly assigned to a RS
+    * [HBASE-8170] - HbaseAdmin.createTable cannot handle creating three regions
+    * [HBASE-8173] - HMaster#move wraps IOException in UnknownRegionException
+    * [HBASE-8175] - Include javadoc and book when site goal invoked
+    * [HBASE-8178] - IPCUtil produces a LOT of WARN log spew
+    * [HBASE-8179] - JSON formatting for cluster status is sort of broken
+    * [HBASE-8187] - trunk/0.95 tarball packaging
+    * [HBASE-8188] - Avoid unnecessary row compare in StoreScanner
+    * [HBASE-8191] - Documentation is not giving the right class name for offline merges.
+    * [HBASE-8192] - Logic errror causes infinite loop in HRegion.bulkLoadHFiles(List)
+    * [HBASE-8195] - hbase.table.archive.directory reference should be removed from hbase-default.xml
+    * [HBASE-8200] - Integration Test classes are not part of the default HBase classpath
+    * [HBASE-8203] - master ui should display region servers with host, port plus startcode
+    * [HBASE-8207] - Replication could have data loss when machine name contains hyphen "-"
+    * [HBASE-8208] - In some situations data is not replicated to slaves when deferredLogSync is enabled
+    * [HBASE-8213] - global authorization may lose efficacy 
+    * [HBASE-8222] - User class should implement equals() and hashCode()
+    * [HBASE-8229] - Replication code logs like crazy if a target table cannot be found.
+    * [HBASE-8231] - delete tests in table_tests.rb(TestShell) always running on empty table.
+    * [HBASE-8236] - Set finalName property in hbase-assembly else basename is hbase-assembly rather than hbase.
+    * [HBASE-8238] - xref docs missing from site gen
+    * [HBASE-8242] - Unable to start HBase 0.95.0RC0 out of the box because of ZK trying to access /var/folders/
+    * [HBASE-8252] - Regions by Region Server table in Master's table view needs styling
+    * [HBASE-8254] - Add lz4 to test compression util usage string
+    * [HBASE-8262] - Add testcase to verify HBASE-7876's empty region split semantics change
+    * [HBASE-8266] - Master cannot start if TableNotFoundException is thrown while partial table recovery
+    * [HBASE-8278] - Log message after Memstore flush is always with sequence id -1
+    * [HBASE-8279] - Performance Evaluation does not consider the args passed in case of more than one client
+    * [HBASE-8282] - User triggered flushes does not allow compaction to get triggered even if compaction criteria is met
+    * [HBASE-8285] - HBaseClient never recovers for single HTable.get() calls with no retries when regions move
+    * [HBASE-8287] - TestRegionMergeTransactionOnCluster failed in trunk build #4010
+    * [HBASE-8289] - TestThreads#testSleepWithoutInterrupt should not expect a bounded wait time
+    * [HBASE-8290] - TestHTableMultiplexer is flaky
+    * [HBASE-8293] - Move BigDecimalColumnInterpreter into hbase-client
+    * [HBASE-8295] - TestMasterFailover.testMasterFailoverWithMockedRITOnDeadRS is flaky.
+    * [HBASE-8299] - ExploringCompactionPolicy can get stuck in rare cases.
+    * [HBASE-8300] - TestSplitTransaction fails to delete files due to open handles left when region is split
+    * [HBASE-8303] - Increse the test timeout to 60s when they are less than 20s
+    * [HBASE-8305] - Too much logs in the some tests
+    * [HBASE-8312] - TestCompactionState - still timeouting
+    * [HBASE-8314] - HLogSplitter can retry to open a 0-length hlog file
+    * [HBASE-8317] - Seek returns wrong result with PREFIX_TREE Encoding
+    * [HBASE-8321] - Log split worker should heartbeat to avoid timeout when the hlog is under recovery
+    * [HBASE-8325] - ReplicationSource read a empty HLog throws EOFException
+    * [HBASE-8326] - mapreduce.TestTableInputFormatScan times out frequently
+    * [HBASE-8327] - Consolidate class loaders
+    * [HBASE-8334] - Enable essential column family support by default
+    * [HBASE-8336] - PooledHTable may be returned multiple times to the same pool
+    * [HBASE-8341] - RestoreSnapshotHandler.prepare() is not called by SnapshotManager  and TakeSnapshotHandler should first acquire the table lock
+    * [HBASE-8346] - Prefetching .META. rows in case only when useCache is set to true
+    * [HBASE-8351] - Minor typo in Bytes IllegalArgumentException throw
+    * [HBASE-8352] - Rename '.snapshot' directory
+    * [HBASE-8355] - BaseRegionObserver#pre(Compact|Flush|Store)ScannerOpen returns null
+    * [HBASE-8359] - Too much logs on HConnectionManager
+    * [HBASE-8360] - In HBaseClient#cancelConnections we should close fully the connection
+    * [HBASE-8366] - HBaseServer logs the full query.
+    * [HBASE-8373] - Update Rolling Restart documentation
+    * [HBASE-8374] - NullPointerException when launching the balancer due to unknown region location
+    * [HBASE-8377] - IntegrationTestBigLinkedList calculates wrap for linked list size incorrectly
+    * [HBASE-8379] - bin/graceful_stop.sh does not return the balancer to original state
+    * [HBASE-8380] - NPE in HBaseClient$Connection.readResponse
+    * [HBASE-8385] - [SNAPSHOTS]: Restore fails to restore snapshot of a deleted table
+    * [HBASE-8390] - Trunk/0.95 cannot simply compile against Hadoop 1.0
+    * [HBASE-8391] - StochasticLoadBalancer doesn't call needsBalance
+    * [HBASE-8393] - Testcase TestHeapSize#testMutations is wrong
+    * [HBASE-8396] - balancerSwitch making two zookeeper calls everytime.
+    * [HBASE-8402] - ScanMetrics depends on number of rpc calls to the server.
+    * [HBASE-8404] - Extra commas in LruBlockCache.logStats
+    * [HBASE-8406] - Fix rat check and rat warning in trunk
+    * [HBASE-8407] - Remove Async HBase from 0.95 and trunk.
+    * [HBASE-8413] - Snapshot verify region will always fail if the HFile has been archived
+    * [HBASE-8421] - hbase-0.95.0 tgz does not include lib/junit*.jar
+    * [HBASE-8422] - Master won't go down.  Stuck waiting on .META. to come on line.
+    * [HBASE-8425] - Per-region memstore size is missing in the new RS web UI
+    * [HBASE-8426] - Opening a region failed on "Metrics source RegionServer,sub=Regions already exists!"
+    * [HBASE-8427] - Apache Rat is incorrectly excluding test source files
+    * [HBASE-8431] - Fix missing headers
+    * [HBASE-8432] - a table with unbalanced regions will balance indefinitely with the 'org.apache.hadoop.hbase.master.DefaultLoadBalancer'
+    * [HBASE-8433] - CellComparator#compare returns incorrect result for faked KeyValue
+    * [HBASE-8436] - SeekBefore returns wrong result with PREFIX_TREE Encoding
+    * [HBASE-8437] - Clean up tmp coprocessor jars
+    * [HBASE-8449] - Refactor recoverLease retries and pauses informed by findings over in hbase-8389
+    * [HBASE-8451] - MetricsMBeanBase has concurrency issues in init 
+    * [HBASE-8456] - HBase Windows scripts fail when there's a blank space in JAVA_HOME
+    * [HBASE-8462] - Custom timestamps should not be allowed to be negative
+    * [HBASE-8464] - FastDiffEncoder - valueOffset calculation is incorrect
+    * [HBASE-8466] - Netty messages in the logs
+    * [HBASE-8468] - IntegrationTestImportTsv fails on a cluster
+    * [HBASE-8472] - mvn -Dhadoop.profile=2.0 -Dhadoop-two.version=2.0.5-SNAPSHOT fails because of Undef Class error wrt o.a.h.IdGenerator
+    * [HBASE-8483] - HConnectionManager can leak ZooKeeper connections when using deleteStaleConnection
+    * [HBASE-8488] - HBase transitive dependencies not being pulled in when building apps like Flume which depend on HBase
+    * [HBASE-8494] - TestRemoteAdmin#testClusterStatus should not assume 'requests' does not change
+    * [HBASE-8505] - References to split daughters should not be deleted separately from parent META entry
+    * [HBASE-8507] - HLog tool documentation should be updated to use FSHLog for trunk and 0.95.
+    * [HBASE-8509] - ZKUtil#createWithParents won't set data during znode creation when parent folder doesn't exit
+    * [HBASE-8510] - HBASE-8469 added a hdfs-site.xml file for tests but it gets included in the test jar
+    * [HBASE-8516] - FSUtils.create() fail with ViewFS
+    * [HBASE-8519] - Backup master will never come up if primary master dies during initialization
+    * [HBASE-8522] - Archived hfiles and old hlogs may be deleted immediately by HFileCleaner, LogCleaner in HMaster
+    * [HBASE-8525] - Use sleep multilier when choosing sinks in ReplicationSource
+    * [HBASE-8529] - checkOpen is missing from multi, mutate, get and multiGet etc.
+    * [HBASE-8530] - Refine error message from ExportSnapshot when there is leftover snapshot in target cluster
+    * [HBASE-8531] - TestZooKeeper fails in trunk/0.95 builds
+    * [HBASE-8532] - [Webui] Bootstrap based webui compatibility for IE and also fix some page format issues.
+    * [HBASE-8536] - Possible NullPointerException in ZKInterProcessLockBase#reapExpiredLocks
+    * [HBASE-8537] - Dead region server pulled in from ZK
+    * [HBASE-8539] - Double(or tripple ...) ZooKeeper listeners of the same type when Master recovers from ZK SessionExpiredException
+    * [HBASE-8540] - SnapshotFileCache logs too many times if snapshot dir doesn't exists
+    * [HBASE-8545] - Meta stuck in transition when it is assigned to a just restarted dead region sever 
+    * [HBASE-8547] - Fix java.lang.RuntimeException: Cached an already cached block
+    * [HBASE-8548] - postOpen hook called twice
+    * [HBASE-8555] - FilterList correctness may be affected by random ordering of sub-filter(list)
+    * [HBASE-8560] - TestMasterShutdown failing in trunk 0.95/trunk -- "Unable to get data of znode /hbase/meta-region-server because node does not exist (not an error)"
+    * [HBASE-8564] - TestMetricsRegionServer depends on test order
+    * [HBASE-8565] - stop-hbase.sh clean up: backup master
+    * [HBASE-8567] - TestDistributedLogSplitting#testLogReplayForDisablingTable fails on hadoop 2.0
+    * [HBASE-8568] - Test case TestDistributedLogSplitting#testWorkerAbort failed intermittently 
+    * [HBASE-8570] - CompactSplitThread logs a CompactSplitThread$CompactionRunner but it does not have a toString
+    * [HBASE-8577] - TestZooKeeper#testLogSplittingAfterMasterRecoveryDueToZKExpiry failed intermittently
+    * [HBASE-8579] - TestDelayedRpc falis from time to time
+    * [HBASE-8581] - rpc refactor dropped passing the operation timeout through to the rpcclient
+    * [HBASE-8582] - Possible NullPointerException in ZKInterProcessLockBase#visitLocks
+    * [HBASE-8586] - Revisit of hbase-8483, "HConnectionManager can leak ZooKeeper connections when using deleteStaleConnection"
+    * [HBASE-8592] - [documentation] some updates for the reference guide regarding recent questions on the ML
+    * [HBASE-8596] - [docs] Add docs about Region server "draining" mode
+    * [HBASE-8597] - compaction record (probably) can block WAL cleanup forever if region is closed without edits
+    * [HBASE-8600] - Bunch of log lines from QosFunction: Marking normal priority after
+    * [HBASE-8602] - Ugly stack trace just because regionserver comes up before master....
+    * [HBASE-8606] - Meta scanner is not closed
+    * [HBASE-8615] - HLog Compression may fail due to Hadoop fs input stream returning partial bytes
+    * [HBASE-8621] - More log edits; we log too much
+    * [HBASE-8622] - Remove ' You are currently running the HMaster without HDFS append support enabled. This may result in data loss. Please see the HBase wiki for details. ' from UI
+    * [HBASE-8624] - bin/local-{master-backup|regionservers}.sh doesn't take --config arg
+    * [HBASE-8627] - HBCK can not fix meta not assigned issue
+    * [HBASE-8631] - Meta Region First Recovery
+    * [HBASE-8634] - Fix potential null pointer dereference in HRegionServer and TableLockChecker
+    * [HBASE-8637] - IntegrationTestBigLinkedListWithChaosMonkey uses the wrong table name
+    * [HBASE-8639] - Poor performance of htable#getscanner in multithreaded environment due to DNS.getDefaultHost() being called in ScannerCallable#prepare()
+    * [HBASE-8640] - ServerName in master may not initialize with the configured ipc address of hbase.master.ipc.address
+    * [HBASE-8641] - IndexBuilder example : CF name of the src table is hard coded
+    * [HBASE-8649] - Private method HStore#createWriterInTmp(long) is never called
+    * [HBASE-8650] - HRegionServer#updateRecoveringRegionLastFlushedSequenceId(HRegion) makes inefficient use of keySet iterator instead of entrySet iterator
+    * [HBASE-8651] - Result of integer multiplication cast to long in HRegionFileSystem#sleepBeforeRetry()
+    * [HBASE-8652] - Number of compacting KVs is not reset at the end of compaction
+    * [HBASE-8654] - src assembly does not include hbase-hadoop2-compat module
+    * [HBASE-8658] - hbase clean is deaf to the --config DIR option
+    * [HBASE-8664] - Small fix ups for memory size outputs in UI
+    * [HBASE-8666] - META region isn't fully recovered during master initialization when META region recovery had chained failures
+    * [HBASE-8667] - Master and Regionserver not able to communicate if both bound to different network interfaces on the same machine.
+    * [HBASE-8672] - Create an Integration test for Bulk Loads
+    * [HBASE-8678] - Wrongly delete cells in some case which can not be deleted
+    * [HBASE-8680] - distributedLogReplay performance regression
+    * [HBASE-8684] - Table Coprocessor can't access external HTable by default
+    * [HBASE-8686] - Extra left brace in bin/hbase
+    * [HBASE-8689] - Cover all mutations rather than only Put while reporting for mutations not writing to WAL
+    * [HBASE-8695] - The HBase thrift service ignores XML configuration
+    * [HBASE-8698] - potential thread creation in MetaScanner.metaScan
+    * [HBASE-8699] - Parameter to DistributedFileSystem#isFileClosed should be of type Path
+    * [HBASE-8701] - distributedLogReplay need to apply wal edits in the receiving order of those edits
+    * [HBASE-8705] - RS holding META when restarted in a single node setup may hang infinitely without META assignment
+    * [HBASE-8706] - Some improvement in snapshot
+    * [HBASE-8710] - The balancer shouldn't try balancing one node
+    * [HBASE-8711] - Requests count is completely off
+    * [HBASE-8712] - HFileLinkCleaner (FSUtils.listStatus) logs too much if links do not exists
+    * [HBASE-8719] - Fix responseTooSlow formatting
+    * [HBASE-8723] - HBase Intgration tests are failing because of new defaults.
+    * [HBASE-8729] - distributedLogReplay may hang during chained region server failure
+    * [HBASE-8732] - HFileBlockDefaultEncodingContext isn't thread-safe but is used by all readers, breaks column encoding
+    * [HBASE-8733] - Update our hadoop2 in trunk and 0.95 to 2.0.5-alpha (We are currently 2.0.2)
+    * [HBASE-8741] - Scope sequenceid to the region rather than regionserver (WAS: Mutations on Regions in recovery mode might have same sequenceIDs)
+    * [HBASE-8742] - HTableDescriptor Properties not preserved when cloning
+    * [HBASE-8745] - Fix src assembly so includes top-level src dir
+    * [HBASE-8749] - Potential race condition between FSUtils.renameAndSetModifyTime() and HFile/LogCleaner
+    * [HBASE-8750] - MetaServerShutdownHandler stucks if .META. assignment fails in previous attempt
+    * [HBASE-8757] - ZK throws IllegalStateException
+    * [HBASE-8760] - possible loss of data in snapshot taken after region split
+    * [HBASE-8762] - Performance/operational penalty when calling HTable.get with a list of one Get
+    * [HBASE-8780] - A column Family can have VERSIONS less than zero 
+    * [HBASE-8781] - ImmutableBytesWritable constructor with another IBW as param need to consider the offset of the passed IBW
+    * [HBASE-8782] - Thrift2 can not parse values when using framed transport
+    * [HBASE-8783] - RSSnapshotManager.ZKProcedureMemberRpcs may be initialized with the wrong server name
+    * [HBASE-8786] - Creating a table with a Bloom filter on the shell is broken.
+    * [HBASE-8787] - Merged region endkey is incorrect if one region has null endkey
+    * [HBASE-8789] - Add max RPC version to meta-region-server zk node.
+    * [HBASE-8790] - NullPointerException thrown when stopping regionserver
+    * [HBASE-8791] - Precommit hadoopqa is broke since -r1491656
+    * [HBASE-8794] - DependentColumnFilter.toString() throws NullPointerException
+    * [HBASE-8795] - bin/hbase zkcli cannot take arguments anymore
+    * [HBASE-8797] - Prevent merging regions from moving during online merge
+    * [HBASE-8798] - Fix a minor bug in shell command with clone_snapshot table error
+    * [HBASE-8799] - TestAccessController#testBulkLoad failing on trunk/0.95
+    * [HBASE-8802] - totalCompactingKVs may overflow
+    * [HBASE-8811] - REST service ignores misspelled "check=" parameter, causing unexpected mutations
+    * [HBASE-8813] - Fix time b/w recoverLease invocations from HBASE 8449
+    * [HBASE-8814] - Possible NPE in split if a region has empty store files.
+    * [HBASE-8849] - CellCodec should write and read the memstoreTS/mvccVersion
+    * [HBASE-8853] - The client connection is not cut when receiving the failure notification
+    * [HBASE-8854] - TestScannersFromClientSide.testScanBatch failed with 'There should have room before prefetching is submitted'
+    * [HBASE-8856] - Crash when attempting split with DelimitedKeyPrefixRegionSplitPolicy
+    * [HBASE-8864] - Fix 2 javadoc warnings
+    * [HBASE-8867] - HLogUtils#getServerNameFromHLogDirectoryName does not take into account the -splitting extension
+    * [HBASE-8869] - incorrect javadoc for CompactionRequest.compareTo()
+    * [HBASE-8870] - Store.needsCompaction() should include minFilesToCompact
+    * [HBASE-8871] - The region server can crash at startup
+    * [HBASE-8874] - PutCombiner is skipping KeyValues while combining puts of same row during bulkload
+    * [HBASE-8875] - incorrect javadoc for EXCLUDE_FROM_MINOR_COMPACTION
+    * [HBASE-8877] - Reentrant row locks
+    * [HBASE-8879] - Client Scanner spams the logs if there are lots of scanners.
+    * [HBASE-8880] - Integration Tests shouldn't set the number or reties.
+    * [HBASE-8882] - Create an Integration Test to Test MTTR
+    * [HBASE-8899] - Could not open a region on a server where it is being closed
+    * [HBASE-8902] - IntegrationTestBulkLoad takes way too long
+    * [HBASE-8904] - Clean up IntegrationTestMTTR and add small features.
+    * [HBASE-8909] - HBASE-6170 broke "hbase.regionserver.lease.period" config, we should support it for BC
+    * [HBASE-8910] - HMaster.abortNow shouldn't try to become a master again if it was stopped
+    * [HBASE-8913] - Remove ".replogs" reference as we no longer use it
+    * [HBASE-8917] - Minor cleanup and fixes for POM
+    * [HBASE-8920] - TestZKBasedOpenCloseRegion.testReOpenRegion fails occasionally
+    * [HBASE-8924] - Master Can fail to come up after chaos monkey if the sleep time is too short.
+    * [HBASE-8930] - Filter evaluates KVs outside requested columns
+    * [HBASE-8933] - TestSplitTransactionOnCluster fails because "Region not moved off .META. server"
+    * [HBASE-8944] - Document workaround for MiniDFSCluster exceptions when running tests
+    * [HBASE-8952] - Missing error handling can cause RegionServer RPC thread to busy loop forever
+    * [HBASE-8955] - TestStochasticLoadBalancer timedout
+    * [HBASE-8956] - A couple of small misspellings thoughout the codebase.
+    * [HBASE-8957] - TestDrainingServer. testDrainingServerWithAbort fails
+    * [HBASE-8967] - Duplicate call to snapshotManager.stop() in HRegionServer
+    * [HBASE-8972] - TestCreateTableHandler.testMasterRestartAfterEnablingNodeIsCreated failed
+    * [HBASE-8975] - NPE/HTTP 500 when opening the master's web UI too early
+    * [HBASE-8981] - add a check on the ServerName parse
+    * [HBASE-8982] - Useless logs in  ipc.RpcClient$Connection(584): Not able to close an output stream
+    * [HBASE-8983] - HBaseConnection#deleteAllConnections does not always delete
+    * [HBASE-8985] - Not enough logging in SplitLogManager
+    * [HBASE-8987] - ProtobufUtil.toException doesn't handle plain RemoteException, gets a NoSuchMethodException
+    * [HBASE-8988] - Reuse the thread pool in the shell to not run out of threads
+    * [HBASE-8998] - TestSnapshotCloneIndependence.testOnlineSnapshotMetadataChangesIndependent fails
+    * [HBASE-9006] - RPC code requires cellBlockCodecClass even though one is defined by default
+    * [HBASE-9008] - Reenable TestReplicationKillSlaveRS.killOneSlaveRS
+    * [HBASE-9016] - Cleanup of HRegion (javadoc, unnecessary inits, unnecessary unboxing)
+    * [HBASE-9021] - Create a unit test for ReplicationHLogReaderManager
+    * [HBASE-9023] - TestIOFencing.testFencingAroundCompactionAfterWALSync occasionally fails
+    * [HBASE-9031] - ImmutableBytesWritable.toString() should downcast the bytes before converting to hex string
+    * [HBASE-9034] - hbase-daemon.sh swallows start up errors
+    * [HBASE-9035] - Incorrect example for using a scan stopRow in HBase book
+    * [HBASE-9036] - Few small code cleanup
+    * [HBASE-9038] - Compaction WALEdit gives NPEs with Replication enabled
+    * [HBASE-9044] - Merging regions throws NPE
+    * [HBASE-9048] - HCM throws NullPointerException under load
+    * [HBASE-9052] - Prevent split/merged region from assigning again
+    * [HBASE-9055] - HBaseAdmin#isTableEnabled() should return false for non-existent table 
+    * [HBASE-9060] - ExportSnapshot job fails if target path contains percentage character
+    * [HBASE-9079] - FilterList getNextKeyHint skips rows that should be included in the results
+    * [HBASE-9085] - Integration Tests fails because of bug in teardown phase where the cluster state is not being restored properly.
+    * [HBASE-9087] - Handlers being blocked during reads
+    * [HBASE-9088] - TestSplitLogManager.testMultipleResubmits fails
+    * [HBASE-9092] - OpenRegion could be ignored by mistake
+    * [HBASE-9096] - Disable split during log replay
+    * [HBASE-9097] - Set HBASE_CLASSPATH before rest of the classpath
+    * [HBASE-9099] - logReplay could trigger double region assignment
+    * [HBASE-9115] - HTableInterface.append operation may overwrites values
+    * [HBASE-9119] - hbase.mapreduce.hfileoutputformat.blocksize should configure with blocksize of a table
+    * [HBASE-9120] - ClassFinder logs errors that are not
+    * [HBASE-9138] - getHaseIntegrationTestingUtility() is misspelled
+    * [HBASE-9144] - Leases class has contention that's not needed
+    * [HBASE-9146] - TestHTablePool hangs when run as part of runMediumTests profile
+    * [HBASE-9151] - HBCK cannot fix when meta server znode deleted, this can happen if all region servers stopped and there are no logs to split.
+    * [HBASE-9152] - Not able to find HMaster and HRegionServer processes with grep by process name on ps result because of large classpath as argument.
+    * [HBASE-9156] - 2000ms timeout for some client calls
+    * [HBASE-9158] - Serious bug in cyclic replication
+    * [HBASE-9173] - replication_admin#get_peer_state(id) in ruby script pointing to undefined method `getPeerState'
+    * [HBASE-9174] - javac hangs compiling hbase-example module since namespaces went in
+    * [HBASE-9177] - Cluster UUID is not properly parsable after rewriting to PB.
+    * [HBASE-9181] - Fix javadoc warnings introduce by namespaces
+    * [HBASE-9182] - Allow non-admin users to list all table names
+    * [HBASE-9184] - Ignore zk assign event if region is not known in transition
+    * [HBASE-9185] - mvn site target fails when building with Maven 3.1
+    * [HBASE-9189] - IncreasingToUpperBoundRegionSplitPolicy.shouldSplit() should check all the stores before returning.
+    * [HBASE-9190] - Update scan.rb description to match the naming convention of META after namespace change
+    * [HBASE-9192] - IntegrationTestBigLinkedListWithChaosMonkey never exits if there is an error
+    * [HBASE-9195] - Fix TestFSHDFSUtils against java7 test re-ordering
+    * [HBASE-9197] - TestAdmin#testShouldCloseTheRegionBasedOnTheEncodedRegionName shuts down the namespaces table and never starts it up again
+    * [HBASE-9198] - RpcClient#call could hang
+    * [HBASE-9199] - Call duration is not accurate
+    * [HBASE-9200] - HFilePrettyPrinter finds incorrect largest row
+    * [HBASE-9204] - An Offline SplitParent Region can be assigned breaking split references
+    * [HBASE-9211] - "ERROR: undefined method `message' for nil:NilClass" in the shell on error
+    * [HBASE-9224] - Print out name of the method we do not support rather than throw NPE
+    * [HBASE-9226] - Thrift host and port are hardcoded in thrift2 DemoClient.java
+    * [HBASE-9230] - Fix the server so it can take a pure pb request param and return a pure pb result
+    * [HBASE-9232] - Fix javadoc warning and a few findbugs items.
+    * [HBASE-9233] - isTableAvailable() may be stuck if an offline parent was never assigned
+    * [HBASE-9234] - Rebuilding user regions should ignore system tables
+    * [HBASE-9236] - region_mover#getTable() should use TableName.toString() instead of Bytes.toString()
+    * [HBASE-9237] - Integration test cleanup after ChaosMonkey refactor
+    * [HBASE-9250] - Lease sleep time can throw an exception
+    * [HBASE-9251] - list_namespace_tables seems to fail
+    * [HBASE-9253] - Clean up IT test code
+    * [HBASE-9255] - TestAsyncProcess#testErrorsServers is flaky on suse linux
+    * [HBASE-9257] - TestAsyncProcess#testFailAndSuccess fails sometime due to a race condition
+    * [HBASE-9267] - StochasticLoadBalancer goes over its processing time limit
+    * [HBASE-9268] - Client doesn't recover from a stalled region server
+    * [HBASE-9269] - IntegrationTestBulkLoad fails because a public constructor is needed.
+    * [HBASE-9271] - Doc the major differences between 0.94 and 0.96; a distillation of release notes for those w/ limited attention
+    * [HBASE-9274] - After HBASE-8408 applied, temporary test files are being left in /tmp/hbase-<user>
+    * [HBASE-9278] - Reading Pre-namespace meta table edits kills the reader
+    * [HBASE-9281] - user_permission command encounters NullPointerException
+    * [HBASE-9283] - Struct and StructIterator should properly handle trailing nulls
+    * [HBASE-9285] - User who created table cannot scan the same table due to Insufficient permissions
+    * [HBASE-9289] - hbase-assembly pom should use project.parent.basedir
+    * [HBASE-9290] - Add logging in IntegrationTestBigLinkedList Verify reduce phase
+    * [HBASE-9296] - Update to bootstrap 3.0
+    * [HBASE-9298] - ns checker runs too frequently; too much mention in master logs
+    * [HBASE-9301] - Default hbase.dynamic.jars.dir to hbase.rootdir/jars
+    * [HBASE-9302] - Column family and qualifier should be allowed to be set as null in grant shell command
+    * [HBASE-9303] - Snapshot restore of table which splits after snapshot was taken encounters 'Region is not online'
+    * [HBASE-9307] - HalfStoreFileReader needs to handle the faked key else compactions go into infinite loops
+    * [HBASE-9308] - Fix precommit javadoc warnings
+    * [HBASE-9309] - The links in the backup masters template are bad
+    * [HBASE-9310] - Remove slop for Stochastic load balancer
+    * [HBASE-9312] - Lower StochasticLoadBalancer's default max run time 
+    * [HBASE-9318] - Procedure#waitForLatch may not throw error even there is one
+    * [HBASE-9319] - Apply 'HBASE-7685 Closing socket connection can't be removed from SecureClient' to trunk
+    * [HBASE-9320] - Up timeouts on NamespaceUpgrades timeouts
+    * [HBASE-9321] - Contention getting the current user in RpcClient$Connection.writeRequest
+    * [HBASE-9322] - Contention on the SoftValueSortedMap with multiple clients
+    * [HBASE-9323] - TestHRegionOnCluster fails
+    * [HBASE-9326] - ServerName is created using getLocalSocketAddress, breaks binding to the wildcard address. Revert HBASE-8640
+    * [HBASE-9327] - retryTime log is confusing
+    * [HBASE-9328] - Table web UI is corrupted sometime
+    * [HBASE-9329] - SnapshotManager should check for directory existance before throwing a warning.
+    * [HBASE-9332] - OrderedBytes does not decode Strings correctly
+    * [HBASE-9337] - shell 'user_permission' throws no method 'toStringBinary' for (o.a.h.h.TableName) 
+    * [HBASE-9338] - Test Big Linked List fails on Hadoop 2.1.0
+    * [HBASE-9340] - revoke 'user' throws ArrayIndexOutOfBoundsException
+    * [HBASE-9344] - RegionServer not shutting down upon KeeperException in open region
+    * [HBASE-9346] - HBCK should provide an option to check if regions boundaries are the same in META and in stores.
+    * [HBASE-9348] - TerminatedWrapper error decoding, skipping skippable types
+    * [HBASE-9350] - In ChaosMonkey, MoveRegionsOfTableAction throws UnknownRegionException
+    * [HBASE-9353] - HTable returned by MetaReader#getMetaHTable() is not closed in MetaEditor#addRegionToMeta()
+    * [HBASE-9364] - Get request with multiple columns returns partial results
+    * [HBASE-9366] - TestHTraceHooks.testTraceCreateTable ConcurrentModificationException up in htrace lib
+    * [HBASE-9372] - Restore HConstants.META_TABLE_NAME as deprecated
+    * [HBASE-9375] - [REST] Querying row data gives all the available versions of a column
+    * [HBASE-9380] - StoreFile.Reader is not being closed on memstore flush
+    * [HBASE-9382] - replicateWALEntry doesn't use the replication handlers
+    * [HBASE-9384] - [WINDOWS] Using file://{hbase.tmp.dir}/hbase for hbase.rootdir causes illegal argument exception on windows
+    * [HBASE-9386] - [WINDOWS] Small improvements to .cmd scripts
+    * [HBASE-9387] - Region could get lost during assignment
+    * [HBASE-9388] - [replication] ZK Dump prints the raw PBUF for the HLog positions
+    * [HBASE-9390] - coprocessors observers are not called during a recovery with the new log replay algorithm
+    * [HBASE-9391] - Compilation problem in AccessController with JDK 6
+    * [HBASE-9394] - [replication] size accounting is completely off in the source
+    * [HBASE-9400] - [UI] Catalog tables section isn't aligned
+    * [HBASE-9402] - initCause() uses wrong exception in ProtobufLogReader#readNext(HLog$Entry)
+    * [HBASE-9411] - Increment / decrement of rpcCount in RpcServer#Connection is not protected by synchronization
+    * [HBASE-9412] - Startup scripts create 2 .out files.
+    * [HBASE-9413] - WebUI says ".META." table but table got renames to "hbase:meta". Meed to update the UI.
+    * [HBASE-9414] - start-hbase.cmd doesn't need the execute flag.
+    * [HBASE-9418] - REST server web UI has some dead links
+    * [HBASE-9419] - Add more informative client column to Integration Test Linked List
+    * [HBASE-9420] - Math.max() on syncedTillHere lacks synchronization
+    * [HBASE-9421] - Provide better error message when dropping non-existent namespace
+    * [HBASE-9423] - Log splitting should not start till HDFS out of safe mode
+    * [HBASE-9425] - Starting a LocalHBaseCluster when 2181 is occupied results in "Too many open files"
+    * [HBASE-9428] - Regex filters are at least an order of magnitude slower since 0.94.3
+    * [HBASE-9430] - Memstore heapSize calculation - DEEP_OVERHEAD is incorrect
+    * [HBASE-9433] - OpenRegionHandler uses different assignment timeout
+    * [HBASE-9434] - hbck tries to sideline file to root dir
+    * [HBASE-9435] - Fix jersey serialization/deserialization of json objects
+    * [HBASE-9436] - hbase.regionserver.handler.count default: 5, 10, 25, 30? pick one
+    * [HBASE-9437] - hbase.regionserver.checksum.verify default: true or false
+    * [HBASE-9439] - shell command list shows something not meaningful
+    * [HBASE-9442] - HLogKey(walKey) constructor needs to be either removed, deprecated or fixed
+    * [HBASE-9446] - saveVersion.sh spit pushd: not found popd: not found
+    * [HBASE-9449] - document how to use shell enhancements from HBASE-5548
+    * [HBASE-9450] - TestDistributedLogSplitting fails
+    * [HBASE-9451] - Meta remains unassigned when the meta server crashes with the ClusterStatusListener set
+    * [HBASE-9452] - Simplify the configuration of the multicast notifier
+    * [HBASE-9453] - make dev-support/generate-hadoopX-poms.sh have exec perms.
+    * [HBASE-9454] - HBaseAdmin#unassign() has incorrect @param argument
+    * [HBASE-9457] - Master could fail start if region server with system table is down
+    * [HBASE-9460] - Fix HLogPerformanceEvaluation so runs against localfs
+    * [HBASE-9461] - Some doc and cleanup in RPCServer
+    * [HBASE-9462] - HBaseAdmin#isTableEnabled() should throw exception for non-existent table
+    * [HBASE-9463] - Fix comments around alter tables
+    * [HBASE-9468] - Previous active master can still serves RPC request when it is trying recovering expired zk session
+    * [HBASE-9471] - htrace synchronized on getInstance
+    * [HBASE-9474] - Cleanup of hbase script usage
+    * [HBASE-9475] - Fix pom warnings found by new m2eclipse
+    * [HBASE-9476] - Yet more master log cleanup
+    * [HBASE-9480] - Regions are unexpectedly made offline in certain failure conditions
+    * [HBASE-9482] - Do not enforce secure Hadoop for secure HBase
+    * [HBASE-9485] - TableOutputCommitter should implement recovery if we don't want jobs to start from 0 on RM restart
+    * [HBASE-9486] - NPE in HTable.close() with AsyncProcess
+    * [HBASE-9492] - hdfs-site.xml is not excluded from the it-test jar
+    * [HBASE-9497] - Old .META. .tableinfo file kills HMaster
+    * [HBASE-9498] - NPE in HBaseAdmin if master not running
+    * [HBASE-9502] - HStore.seekToScanner should handle magic value
+    * [HBASE-9508] - Restore some API mistakenly removed in client, mapred*, and common
+    * [HBASE-9509] - Fix HFile V1 Detector to handle AccessControlException for non-existant files
+    * [HBASE-9510] - Namespace operations should throw clean exceptions
+    * [HBASE-9511] - LZ4 codec retrieval executes redundant code
+    * [HBASE-9512] - Regions can't get out InRecovery state sometimes when turn off distributeLogReplay and restart a cluster
+    * [HBASE-9514] - Prevent region from assigning before log splitting is done
+    * [HBASE-9519] - fix NPE in EncodedScannerV2.getFirstKeyInBlock()
+    * [HBASE-9521] - clean clearBufferOnFail behavior and deprecate it
+    * [HBASE-9525] - "Move" region right after a region split is dangerous
+    * [HBASE-9533] - List of dependency jars for MR jobs is hard-coded and does not include netty, breaking MRv1 jobs
+    * [HBASE-9534] - Short-Circuit Coprocessor HTable access when on the same server
+    * [HBASE-9536] - Fix minor javadoc warnings
+    * [HBASE-9539] - Handle post namespace snapshot files  when checking for HFile V1 
+    * [HBASE-9547] - Surefire steals focus on mac osx
+    * [HBASE-9548] - Cleanup SnapshotTestingUtils
+    * [HBASE-9549] - KeyValue#parseColumn(byte[]) does not handle empty qualifier
+    * [HBASE-9550] - IntegrationTestBigLinkedList used to be able to run on pseudo-distributed clusters
+    * [HBASE-9551] - HBaseTestingUtility#createPreSplitLoadTestTable double close HBaseAdmin
+    * [HBASE-9554] - TestOfflineMetaRebuildOverlap#testMetaRebuildOverlapFail fails due to NPE
+    * [HBASE-9555] - Reset loadbalancer back to StochasticLoadBalancer
+    * [HBASE-9557] - strange dependencies for hbase-client
+    * [HBASE-9558] - PerformanceEvaluation is in hbase-server, and create a dependency to MiniDFSCluster
+    * [HBASE-9561] - hbase-server-tests.jar contains a test mapred-site.xml
+    * [HBASE-9563] - Autorestart doesn't work if zkcleaner fails
+    * [HBASE-9565] - LocalityRegionPicker was mistakenly commented out
+    * [HBASE-9569] - TestHLog is broken
+    * [HBASE-9579] - Sanity check visiblity and audience for server-side modules.
+    * [HBASE-9581] - Few tests broken since HBASE-9551
+    * [HBASE-9590] - TableEventHandler#reOpenAllRegions() should close the HTable instance
+    * [HBASE-9597] - Create hbase-thrift module
+    * [HBASE-9598] - Non thread safe increment of task.unforcedResubmits in SplitLogManager#resubmit()
+    * [HBASE-9600] - TestColumnSchemaModel and TestTableSchemaModel test cases are failing with IBM IBM Java 6
+    * [HBASE-9602] - Cluster can't start when log splitting at startup time and the master's web UI is refreshed a few times
+    * [HBASE-9603] - IsRestoreSnapshotDoneResponse has wrong default causing restoreSnapshot() to be async
+    * [HBASE-9609] - AsyncProcess doesn't increase all the counters when trying to limit the per region flow.
+    * [HBASE-9610] - TestThriftServer.testAll failing
+    * [HBASE-9612] - Ability to batch edits destined to different regions
+    * [HBASE-9632] - Put the shell in a maven sub module (hbase-shell) instead of hbase-server
+    * [HBASE-9633] - Partial reverse of HBASE-9533
+    * [HBASE-9639] - SecureBulkLoad dispatches file load requests to all Regions
+    * [HBASE-9640] - Increment of loadSequence in CoprocessorHost#loadInstance() is thread-unsafe 
+    * [HBASE-9642] - AM ZK Workers stuck doing 100% CPU on HashMap.put
+    * [HBASE-9645] - Regionserver halt because of HLog's "Logic Error Snapshot seq id from earlier flush still present!"
+    * [HBASE-9647] - Add a test in TestAsyncProcess to check the number of threads created
+    * [HBASE-9649] - HFilePrettyPrinter should not throw a NPE if FirstKey or LastKey is null.
+    * [HBASE-9650] - Per region metrics are not showing up for system tables.
+    * [HBASE-9653] - Add compaction metrics to trunk
+    * [HBASE-9659] - some integration tests can no longer be run using maven
+    * [HBASE-9660] - Release source tarball should contain ./dev-support contents.
+    * [HBASE-9662] - PerformanceEvaluation input do not handle tags properties
+    * [HBASE-9663] - PerformanceEvaluation does not properly honor specified table name parameter
+    * [HBASE-9670] - Client pause should be 100ms everywhere
+    * [HBASE-9672] - LoadTestTool NPE's when -num_tables is given, but -tn is not
+    * [HBASE-9676] - AsyncProcess can create more tasks than hbase.client.max.total.tasks
+    * [HBASE-9685] - IntegrationTestMTTR should stop on RetriesExhaustedException
+    * [HBASE-9687] - ClassNotFoundException is thrown when ExportSnapshot runs against hadoop cluster where HBase is not installed on the same node as resourcemanager
+    * [HBASE-9688] - Fix javadoc warning in HConnectionManager class javadoc
+    * [HBASE-9694] - HBaseTestingUtility.createTable infinite loop
+    * [HBASE-9695] - Some never used local variables cleanup.
+    * [HBASE-9696] - Master recovery ignores online merge znode
+    * [HBASE-9697] - ZKDataMigrator should exit on table(s) null check.
+    * [HBASE-9698] - HBCK does not handle tables with no regions left
+    * [HBASE-9699] - For Downstreamers using HBaseTestingUtility is hard.
+    * [HBASE-9700] - remove htrace-zipkin from the runtime dependencies
+    * [HBASE-9706] - Improve detection of secure ZooKeeper
+    * [HBASE-9709] - LogReplay throws NPE when no KVs to be replayed in a WALEdit
+    * [HBASE-9710] - Use the region name, not the encoded name, when region is not on current server
+    * [HBASE-9718] - Add a test scope dependency on org.slf4j:slf4j-api to hbase-client
+    * [HBASE-9723] - TestAsyncProcess#testFailAndSuccess & testThreadCreation are flaky on SUSE
+    * [HBASE-9724] - Failed region split is not handled correctly by AM
+    * [HBASE-9727] - HBase Rest Server - DELETE scanner operation is a no-op
+    * [HBASE-9728] - generate-hadoopX-poms.sh examples is wrong.
+    * [HBASE-9730] - Exceptions in multi operations are not handled correctly
+    * [HBASE-9732] - Static AtomicLong updated in StoreFileScanner every (re)seek
+    * [HBASE-9735] - region_mover.rb uses the removed HConnection.getZooKeeperWatcher() method
+    * [HBASE-9737] - Corrupt HFile cause resource leak leading to Region Server OOM
+    * [HBASE-9743] - RollingBatchRestartRsAction aborts if timeout
+    * [HBASE-9745] - Append HBASE_CLASSPATH to end of Java classpath and use another env var for prefix
+    * [HBASE-9747] - PrefixFilter with OR condition gives wrong results
+    * [HBASE-9748] - Address outstanding comments raised for HBASE-9696
+    * [HBASE-9751] - Excessive  readpoints checks in StoreFileScanner
+    * [HBASE-9753] - Excessive readpoint checks in MemstoreScanner
+    * [HBASE-9754] - Eliminate threadlocal from MVCC code
+    * [HBASE-9755] - Cannot run classes in hbase-server tests jar from command line 
+    * [HBASE-9759] - Prevent random number collision in IntegrationTestBulkLoad
+    * [HBASE-9761] - Put copy constructor should clone the operation attributes also
+    * [HBASE-9765] - TestImportTsv.testBulkOutputWithTsvImporterTextMapper() may not be working correctly
+    * [HBASE-9766] - HFileV3 - Optional tags write and read is not working as expected
+    * [HBASE-9768] - Two issues in AsyncProcess
+    * [HBASE-9770] - HFilePerformanceEvaluation is using the wrong Comparator
+    * [HBASE-9773] - Master aborted when hbck asked the master to assign a region that was already online
+    * [HBASE-9776] - Test Load And Verify Fails with TableNotEnabledException
+    * [HBASE-9785] - Fix heap size reporting in HRegion
+    * [HBASE-9786] - [hbck]: hbck -metaonly incorrectly reports inconsistent regions after HBASE-9698 fix
+    * [HBASE-9788] - [WINDOWS] Update rest server class name
+    * [HBASE-9791] - MR initializes scanner twice
+    * [HBASE-9792] - Region states should update last assignments when a region is opened.
+    * [HBASE-9793] - Offline a region before it's closed could cause double assignment
+    * [HBASE-9796] - npe in RegionServerCallable
+    * [HBASE-9798] - Include dependency hamcrest-core
+    * [HBASE-9807] - block encoder unnecessarily copies the key for each reseek
+    * [HBASE-9808] - org.apache.hadoop.hbase.rest.PerformanceEvaluation is out of sync with org.apache.hadoop.hbase.PerformanceEvaluation
+    * [HBASE-9810] - Global memstore size will be calculated wrongly if replaying recovered edits throws exception
+    * [HBASE-9813] - Log splitting doesn't prevent RS creating new hlog file
+    * [HBASE-9816] - Address review comments in HBASE-8496
+    * [HBASE-9821] - Scanner id could collide
+    * [HBASE-9822] - IntegrationTestLazyCfLoading failed occasionally in a secure enviroment
+    * [HBASE-9838] - Fix javadoc warning in ImportTsv#TsvParser ctor
+    * [HBASE-9843] - Various fixes in client code
+    * [HBASE-9848] - Make regionserver Canary exit with different exit codes
+    * [HBASE-9849] - [REST] Forbidden schema delete in read only mode
+    * [HBASE-9850] - Issues with UI for table compact/split operation completion. After split/compaction operation using UI, the page is not automatically redirecting back using IE8/Firefox.
+    * [HBASE-9856] - Fix some findbugs Performance Warnings
+    * [HBASE-9859] - Canary Shouldn't go off if the table being read from is disabled
+    * [HBASE-9862] - manage error per server and per region in the protobuffed client
+    * [HBASE-9863] - Intermittently TestZooKeeper#testRegionAssignmentAfterMasterRecoveryDueToZKExpiry hangs in admin#createTable() call
+    * [HBASE-9865] - Reused WALEdits in replication may cause RegionServers to go OOM
+    * [HBASE-9868] - Remove some array copy, especially around protobuf
+    * [HBASE-9869] - Optimize HConnectionManager#getCachedLocation
+    * [HBASE-9870] - HFileDataBlockEncoderImpl#diskToCacheFormat uses wrong format
+    * [HBASE-9871] - PB issue : Increment attributes are not getting passed to server
+    * [HBASE-9872] - ModifyTable does not  modify the attributes of a newly modified/changed ColumnDescriptor
+    * [HBASE-9874] - Append and Increment operation drops Tags
+    * [HBASE-9885] - Avoid some Result creation in protobuf conversions
+    * [HBASE-9886] - Optimize ServerName#compareTo
+    * [HBASE-9890] - MR jobs are not working if started by a delegated user
+    * [HBASE-9893] - Incorrect assert condition in OrderedBytes decoding
+    * [HBASE-9895] - 0.96 Import utility can't import an exported file from 0.94
+    * [HBASE-9900] - Fix unintended byte[].toString in AccessController
+    * [HBASE-9901] - Add a toString in HTable, fix a log in AssignmentManager
+    * [HBASE-9902] - Region Server is starting normally even if clock skew is more than default 30 seconds(or any configured). -> Regionserver node time is greater than master node time
+    * [HBASE-9903] - Remove the jamon generated classes from the findbugs analysis
+    * [HBASE-9906] - Restore snapshot fails to restore the meta edits sporadically  
+    * [HBASE-9908] - [WINDOWS] Fix filesystem / classloader related unit tests
+    * [HBASE-9909] - TestHFilePerformance should not be a unit test, but a tool
+    * [HBASE-9915] - Performance: isSeeked() in EncodedScannerV2 always returns false
+    * [HBASE-9918] - MasterAddressTracker & ZKNamespaceManager ZK listeners are missed after master recovery
+    * [HBASE-9926] - Scanner doesn't check if a region is available
+    * [HBASE-9947] - Add CM action for online compression algorithm change
+    * [HBASE-9949] - Fix the race condition between Compaction and StoreScanner.init
+    * [HBASE-9952] - Snapshot restore may fail due to NullPointerException
+    * [HBASE-9956] - Remove keyLength cache from KeyValue
+    * [HBASE-9957] - [WINDOWS] TestNamespaceUpgrade fails on windows
+    * [HBASE-9958] - Remove some array copy, change lock scope in locateRegion
+    * [HBASE-9959] - Remove some array copy - server side
+    * [HBASE-9960] - Fix javadoc for CellUtil#tagsIterator()
+    * [HBASE-9961] - [WINDOWS] Multicast should bind to local address
+    * [HBASE-9962] - Improve tag iteration
+    * [HBASE-9970] - HBase BulkLoad, table is creating with the timestamp key also as a column to the table. 
+    * [HBASE-9973] - [ACL]: Users with 'Admin' ACL permission will lose permissions after upgrade to 0.96.x from 0.94.x or 0.92.x
+    * [HBASE-9975] - Not starting ReplicationSink when using custom implementation for the ReplicationSink.
+    * [HBASE-9976] - Don't create duplicated TableName objects
+    * [HBASE-9978] - The client retries even if the method is not present on the server
+    * [HBASE-9982] - TestClientNoCluster should use random numbers
+    * [HBASE-9983] - Lower the memory footprint of HRegionLocation
+    * [HBASE-9987] - Remove some synchronisation points in HConnectionManager
+    * [HBASE-9988] - DOn't use HRI#getEncodedName in the client
+    * [HBASE-9989] - Add a test on get in TestClientNoCluster
+    * [HBASE-9992] - [hbck] Refactor so that arbitrary -D cmdline options are included 
+    * [HBASE-9995] - Not stopping ReplicationSink when using custom implementation for the ReplicationSink
+    * [HBASE-10004] - Some fixes for scoping sequence Ids to region level
+    * [HBASE-10005] - TestVisibilityLabels fails occasionally
+    * [HBASE-10011] - Fix some findbugs in the client
+    * [HBASE-10012] - Hide ServerName constructor
+    * [HBASE-10013] - Enhance the message about ZK when there is an exception
+    * [HBASE-10014] - HRegion#doMiniBatchMutation rollbacks the memstore even if there is nothing to rollback.
+    * [HBASE-10015] - Replace intrinsic locking with explicit locks in StoreScanner
+    * [HBASE-10026] - HBaseAdmin#createTable could fail if region splits too fast
+    * [HBASE-10029] - Proxy created by HFileSystem#createReorderingProxy() should properly close when connecting to HA namenode
+    * [HBASE-10030] - [JDK8] Erasure of PoolMap#remove(K,V) conflicts with superclass method
+    * [HBASE-10032] - [JDK8] ConcurrentSkipListMap class size changed
+    * [HBASE-10045] - HMaster's clear command could conflict with JMX ports
+    * [HBASE-10046] - Unmonitored HBase service could accumulate Status objects and OOM
+    * [HBASE-10050] - graceful_stop.sh syntax error
+    * [HBASE-10051] - rolling-restart.sh have old value of "zookeeper.znode.unassiged" config causing infinite loop
+    * [HBASE-10053] - ProtobufUtil#toMutationNoData interface change causes downstream project build break
+    * [HBASE-10056] - region_status.rb not adopted to 0.96 api
+    * [HBASE-10057] - TestRestoreFlushSnapshotFromClient and TestRestoreSnapshotFromClient fail to finish occasionally
+    * [HBASE-10061] - TableMapReduceUtil.findOrCreateJar calls updateMap(null, ) resulting in thrown NPE
+    * [HBASE-10069] - Potential duplicate calls to log#appendNoSync() in HRegion#doMiniBatchMutation()
+    * [HBASE-10072] - Regenerate ClientProtos after HBASE-4811
+    * [HBASE-10073] - Revert HBASE-9718 (Add a test scope dependency on org.slf4j:slf4j-api to hbase-client)
+    * [HBASE-10079] - Race in TableName cache
+    * [HBASE-10084] - [WINDOWS] bin\hbase.cmd should allow whitespaces in java.library.path and classpath
+    * [HBASE-10085] - Some regions aren't re-assigned after a cluster restarts
+    * [HBASE-10087] - Store should be locked during a memstore snapshot
+    * [HBASE-10090] - Master could hang in assigning meta
+    * [HBASE-10098] - [WINDOWS] pass in native library directory from hadoop for unit tests
+    * [HBASE-10099] - javadoc warning introduced by LabelExpander 188: warning - @return tag has no arguments 
+    * [HBASE-10101] - testOfflineRegionReAssginedAfterMasterRestart times out sometimes.
+    * [HBASE-10103] - TestNodeHealthCheckChore#testRSHealthChore: Stoppable must have been stopped
+    * [HBASE-10107] - [JDK7] TestHBaseSaslRpcClient.testHBaseSaslRpcClientCreation failing on Jenkins
+    * [HBASE-10108] - NullPointerException thrown while use Canary with '-regionserver' option
+    * [HBASE-10111] - Verify that a snapshot is not corrupted before restoring it
+    * [HBASE-10112] - Hbase rest query params for maxVersions and maxValues are not parsed
+    * [HBASE-10114] - _scan_internal() in table.rb should accept argument that specifies reverse scan
+    * [HBASE-10120] - start-hbase.sh doesn't respect --config in non-distributed mode
+    * [HBASE-10125] - KeyValue(Cell c) copy constructor doesn't copy tags data
+    * [HBASE-10137] - GeneralBulkAssigner with retain assignment plan can be used in EnableTableHandler to bulk assign the regions
+    * [HBASE-10138] - incorrect or confusing test value is used in block caches
+    * [HBASE-10142] - TestLogRolling#testLogRollOnDatanodeDeath test failure
+    * [HBASE-10146] - Bump HTrace version to 2.04
+    * [HBASE-10148] - [VisibilityController] Tolerate regions in recovery
+    * [HBASE-10149] - TestZKPermissionsWatcher.testPermissionsWatcher test failure
+    * [HBASE-10155] - HRegion isRecovering state is wrongly coming in postOpen hook
+    * [HBASE-10161] - [AccessController] Tolerate regions in recovery
+    * [HBASE-10163] - Example Thrift DemoClient is flaky
+    * [HBASE-10176] - Canary#sniff() should close the HTable instance
+    * [HBASE-10178] - Potential null object dereference in TablePermission#equals()
+    * [HBASE-10179] - HRegionServer underreports readRequestCounts by 1 under certain conditions
+    * [HBASE-10182] - Potential null object deference in AssignmentManager#handleRegion()
+    * [HBASE-10186] - region_mover.rb broken because ServerName constructor is changed to private
+    * [HBASE-10187] - AccessController#preOpen - Include 'labels' table also into special tables list.
+    * [HBASE-10193] - Cleanup HRegion if one of the store fails to open at region initialization
+    * [HBASE-10194] - [Usability]: Instructions in CompactionTool no longer accurate because of namespaces
+    * [HBASE-10195] - "mvn site" build failed with OutOfMemoryError
+    * [HBASE-10196] - Enhance HBCK to understand the case after online region merge
+    * [HBASE-10198] - Add a note on how to Import 0.94 exported file to a 0.96 cluster or onwards
+    * [HBASE-10207] - ZKVisibilityLabelWatcher : Populate the labels cache on startup
+    * [HBASE-10210] - during master startup, RS can be you-are-dead-ed by master in error
+    * [HBASE-10215] - TableNotFoundException should be thrown after removing stale znode in ETH
+    * [HBASE-10219] - HTTPS support for HBase in RegionServerListTmpl.jamon
+    * [HBASE-10220] - Put all test service principals into the superusers list
+    * [HBASE-10221] - Region from coprocessor invocations can be null on failure
+    * [HBASE-10223] - [VisibilityController] cellVisibility presence check on Delete mutation is wrong
+    * [HBASE-10225] - Bug in calls to RegionObsever.postScannerFilterRow
+    * [HBASE-10226] - [AccessController] Namespace grants not always checked
+    * [HBASE-10231] - Potential NPE in HBaseFsck#checkMetaRegion()
+    * [HBASE-10232] - Remove native profile from hbase-shell
+    * [HBASE-10233] - VisibilityController is too chatty at DEBUG level
+    * [HBASE-10249] - TestReplicationSyncUpTool fails because failover takes too long
+    * [HBASE-10260] - Canary Doesn't pick up Configuration properly.
+    * [HBASE-10264] - [MapReduce]: CompactionTool in mapred mode is missing classes in its classpath
+    * [HBASE-10267] - TestNamespaceCommands occasionally fails
+    * [HBASE-10268] - TestSplitLogWorker occasionally fails
+    * [HBASE-10272] - Cluster becomes nonoperational if the node hosting the active Master AND ROOT/META table goes offline
+    * [HBASE-10274] - MiniZookeeperCluster should close ZKDatabase when shutdown ZooKeeperServers
+    * [HBASE-10284] - Build broken with svn 1.8
+    * [HBASE-10292] - TestRegionServerCoprocessorExceptionWithAbort fails occasionally
+    * [HBASE-10298] - TestIOFencing occasionally fails
+    * [HBASE-10304] - Running an hbase job jar: IllegalAccessError: class com.google.protobuf.ZeroCopyLiteralByteString cannot access its superclass com.google.protobuf.LiteralByteString
+    * [HBASE-10307] - IntegrationTestIngestWithEncryption assumes localhost cluster
+    * [HBASE-10310] - ZNodeCleaner session expired for /hbase/master
+    * [HBASE-10315] - Canary shouldn't exit with 3 if there is no master running.
+    * [HBASE-10318] - generate-hadoopX-poms.sh expects the version to have one extra '-'
+    * [HBASE-10319] - HLog should roll periodically to allow DN decommission to eventually complete.
+    * [HBASE-10320] - Avoid ArrayList.iterator() ExplicitColumnTracker
+    * [HBASE-10321] - CellCodec has broken the 96 client to 98 server compatibility
+    * [HBASE-10322] - Strip tags from KV while sending back to client on reads
+    * [HBASE-10326] - Super user should be able scan all the cells irrespective of the visibility labels
+    * [HBASE-10329] - Fail the writes rather than proceeding silently to prevent data loss when AsyncSyncer encounters null writer and its writes aren't synced by other Asyncer
+    * [HBASE-10332] - Missing .regioninfo file during daughter open processing
+    * [HBASE-10333] - Assignments are not retained on a cluster start
+    * [HBASE-10334] - RegionServer links in table.jsp is broken
+    * [HBASE-10335] - AuthFailedException in zookeeper may block replication forever
+    * [HBASE-10337] - HTable.get() uninteruptible
+    * [HBASE-10338] - Region server fails to start with AccessController coprocessor if installed into RegionServerCoprocessorHost
+    * [HBASE-10339] - Mutation::getFamilyMap method was lost in 98
+    * [HBASE-10349] - Table became unusable when master balanced its region after table was dropped
+    * [HBASE-10365] - HBaseFsck should clean up connection properly when repair is completed
+    * [HBASE-10366] - 0.94 filterRow() may be skipped in 0.96(or onwards) code
+    * [HBASE-10370] - Compaction in out-of-date Store causes region split failure
+    * [HBASE-10371] - Compaction creates empty hfile, then selects this file for compaction and creates empty hfile and over again
+    * [HBASE-10375] - hbase-default.xml hbase.status.multicast.address.port does not match code
+    * [HBASE-10384] - Failed to increment serveral columns in one Increment
+    * [HBASE-10400] - [hbck] Continue if region dir missing on region merge attempt
+    * [HBASE-10401] - [hbck] perform overlap group merges in parallel
+    * [HBASE-10412] - Distributed log replay : Cell tags getting missed
+    * [HBASE-10422] - ZeroCopyLiteralByteString.zeroCopyGetBytes has an unusable prototype and conflicts with AsyncHBase
+    * [HBASE-10426] - user_permission in security.rb calls non-existent UserPermission#getTable method
+    * [HBASE-10429] - Make Visibility Controller to throw a better msg if it is of type RegionServerCoprocessor
+    * [HBASE-10431] - Rename com.google.protobuf.ZeroCopyLiteralByteString
+    * [HBASE-10433] - SecureProtobufWALReader does not handle unencrypted WALs if configured to encrypt
+    * [HBASE-10434] - Store Tag compression information for a WAL in its header
+    * [HBASE-10435] - Lower the log level of Canary region server match
+    * [HBASE-10438] - NPE from LRUDictionary when size reaches the max init value
+    * [HBASE-10442] - prepareDelete() isn't called before doPreMutationHook for a row deletion case
+    * [HBASE-10443] - IndexOutOfBoundExceptions when processing compressed tags in HFile
+    * [HBASE-10447] - Memstore flusher scans storefiles also when the scanner heap gets reset
+    * [HBASE-10448] - ZKUtil create and watch methods don't set watch in some cases
+    * [HBASE-10449] - Wrong execution pool configuration in HConnectionManager
+    * [HBASE-10454] - Tags presence file info can be wrong in HFiles when PrefixTree encoding is used
+    * [HBASE-10455] - cleanup InterruptedException management
+    * [HBASE-10456] - Balancer should not run if it's just turned off.
+    * [HBASE-10460] - Return value of Scan#setSmall() should be void
+    * [HBASE-10461] - table.close() in TableEventHandler#reOpenAllRegions() should be enclosed in finally block
+    * [HBASE-10467] - Restore HTableDescriptor#isDeferredLogFlush()
+    * [HBASE-10470] - Import generates huge log file while importing large amounts of data
+    * [HBASE-10477] - Regression from HBASE-10337
+    * [HBASE-10506] - Fail-fast if client connection is lost before the real call be executed in RPC layer
+
+** Improvement
+    * [HBASE-2231] - Compaction events should be written to HLog
+    * [HBASE-3171] - Drop ROOT and instead store META location(s) directly in ZooKeeper
+    * [HBASE-4284] - document permissions that need to be set on importtsv output before completebulkload
+    * [HBASE-4360] - Maintain information on the time a RS went dead
+    * [HBASE-4654] - [replication] Add a check to make sure we don't replicate to ourselves
+    * [HBASE-5044] - Clarify solution for problem described on http://hbase.apache.org/book/trouble.mapreduce.html
+    * [HBASE-5577] - improve 'patch submission' section in HBase book
+    * [HBASE-5930] - Limits the amount of time an edit can live in the memstore.
+    * [HBASE-5945] - Reduce buffer copies in IPC server response path
+    * [HBASE-6295] - Possible performance improvement in client batch operations: presplit and send in background
+    * [HBASE-6580] - Deprecate HTablePool in favor of HConnection.getTable(...)
+    * [HBASE-6870] - HTable#coprocessorExec always scan the whole table 
+    * [HBASE-7181] - Merge documentation improvement
+    * [HBASE-7183] - print WARN message if hbase.replication.sizeOfLogQueue is too big
+    * [HBASE-7247] - Assignment performances decreased by 50% because of regionserver.OpenRegionHandler#tickleOpening
+    * [HBASE-7410] - [snapshots] add snapshot/clone/restore/export docs to ref guide
+    * [HBASE-7567] - [replication] Create an interface for replication peers
+    * [HBASE-7721] - Atomic multi-row mutations in META
+    * [HBASE-7745] - Import uses System.out.println instead of logging
+    * [HBASE-7790] - Refactor OpenRegionHandler so that the cleanup happens in one place - the finally block
+    * [HBASE-7803] - [REST] Support caching on scan
+    * [HBASE-7827] - Improve the speed of Hbase Thirft Batch mutation for deletes
+    * [HBASE-7843] - enable encapsulating compaction policy/compactor/store file manager interaction shennanigans
+    * [HBASE-7845] - optimize hfile index key
+    * [HBASE-7848] - Use ZK-based read/write lock to make flush-type snapshot robust against table enable/disable/alter
+    * [HBASE-7849] - Provide administrative limits around bulkloads of files into a single region
+    * [HBASE-7902] - deletes may be removed during minor compaction,  in non-standard compaction schemes [rename enums]
+    * [HBASE-7908] - Add jstack logs in hbase-common.sh when killing the server.
+    * [HBASE-7917] - Documentation for secure bulk load
+    * [HBASE-7930] - hbck should provide an option to fix .META. rows with empty REGIONINFO_QUALIFIER
+    * [HBASE-7952] - Remove update() and Improve ExplicitColumnTracker performance.
+    * [HBASE-7977] - Online merge should acquire table lock
+    * [HBASE-7979] - Adding some utility methods in org.apache.hadoop.hbase.util.Bytes
+    * [HBASE-8001] - Avoid unnecessary lazy seek
+    * [HBASE-8031] - Adopt goraci as an Integration test
+    * [HBASE-8059] - Enhance test-patch.sh so that patch can specify hadoop-2.0 as the default profile
+    * [HBASE-8063] - Filter HFiles based on first/last key
+    * [HBASE-8066] - Provide Admin.isTableAvailable() for a given table along with splitkeys
+    * [HBASE-8077] - Configure the job name in ImportTsv
+    * [HBASE-8080] - refactor default compactor to make its parts easier to reuse
+    * [HBASE-8117] - Remove redundant byte conversion methods from HConstants
+    * [HBASE-8137] - Add failed to open/close region state
+    * [HBASE-8148] - Allow IPC to bind on a specific address
+    * [HBASE-8152] - Avoid creating empty reference file when splitkey is outside the key range of a store file
+    * [HBASE-8205] - HBCK support for table locks
+    * [HBASE-8218] - Pass HTable as parameter to methods of AggregationClient
+    * [HBASE-8235] - Adding inmemory CF attribute to LoadTest and PerformanceEvaluation tool
+    * [HBASE-8240] - CompoundConfiguration should implement Iterable
+    * [HBASE-8271] - Book updates for changes to GC options in shell scripts
+    * [HBASE-8272] - make compaction checker frequency configurable per table/cf
+    * [HBASE-8284] - Allow String Offset(s) in ColumnPaginationFilter for bookmark based pagination
+    * [HBASE-8301] - Document for hbase.rpc.timeout
+    * [HBASE-8322] - Re-enable hbase checksums by default
+    * [HBASE-8339] - Make sure the StochasticLoadBalancer doesn't run a cost function when not needed
+    * [HBASE-8345] - Add all available resources in o.a.h.h.rest.RootResource and VersionResource to o.a.h.h.rest.client.RemoteAdmin
+    * [HBASE-8350] - enable ChaosMonkey to run commands as different users
+    * [HBASE-8367] - LoadIncrementalHFiles does not return an error code nor throw Exception when failures occur due to timeouts
+    * [HBASE-8383] - Support lib/*jar inside coprocessor jar
+    * [HBASE-8420] - Port  HBASE-6874  Implement prefetching for scanners from 0.89-fb
+    * [HBASE-8438] - Extend bin/hbase to print a "mapreduce classpath"
+    * [HBASE-8439] - [replication] Remove ReplicationZookeeper class
+    * [HBASE-8461] - Provide the ability to delete multiple snapshots through single command
+    * [HBASE-8465] - Auto-drop rollback snapshot for snapshot restore
+    * [HBASE-8470] - Data file used by TestReference should be excluded from Apache Rat check
+    * [HBASE-8471] - Server-side, remove convertion from pb type to client type before we call method
+    * [HBASE-8485] - Retry to open a HLog on more exceptions 
+    * [HBASE-8573] - Store last flushed sequence id for each store of region for Distributed Log Replay
+    * [HBASE-8599] - HLogs in ZK are not cleaned up when replication lag is minimal
+    * [HBASE-8608] - Do an edit of logs.. we log too much.
+    * [HBASE-8609] - Make the CopyTable support startRow, stopRow options
+    * [HBASE-8613] - Improve logging when BindException is received at startup time.
+    * [HBASE-8617] - Introducing a new config to disable writes during recovering 
+    * [HBASE-8618] - Master is providing dead RegionServer ServerName's to the balancer
+    * [HBASE-8625] - Dependency version upgrade
+    * [HBASE-8685] - [REST] Minor fix to XMLSchema.xsd and ScannerModel
+    * [HBASE-8690] - Reduce unnecessary getFileStatus hdfs calls in TTL hfile and hlog cleanners
+    * [HBASE-8692] - [AccessController] Restrict HTableDescriptor enumeration
+    * [HBASE-8702] - Make WALEditCodec pluggable
+    * [HBASE-8704] - Log the table name in ServerCallable.prepare.
+    * [HBASE-8737] - [replication] Change replication RPC to use cell blocks
+    * [HBASE-8740] - Generate unique table names in TestAccessController
+    * [HBASE-8754] - Log the client IP/port of the balancer invoker
+    * [HBASE-8755] - A new write thread model for HLog to improve the overall HBase write throughput
+    * [HBASE-8768] - Improve bulk load performance by moving key value construction from map phase to reduce phase.
+    * [HBASE-8778] - Region assigments scan table directory making them slow for huge tables
+    * [HBASE-8785] - revise zookeeper session timeout setting
+    * [HBASE-8809] - Include deletes in the scan (setRaw) method does not respect the time range or the filter
+    * [HBASE-8812] - Avoid a wide line on the HMaster webUI if we have many ZooKeeper servers
+    * [HBASE-8847] - Filter.transform() always applies unconditionally, even when combined in a FilterList
+    * [HBASE-8861] - Remove ReplicationState completely
+    * [HBASE-8884] - Pluggable RpcScheduler
+    * [HBASE-8915] - protobuf message style
+    * [HBASE-8918] - Removes redundant identifiers from interfaces
+    * [HBASE-8921] - [thrift2] Add GenericOptionsParser to Thrift 2 server
+    * [HBASE-8961] - Make TestReplicationQueueFailover less integration-y by splitting it up
+    * [HBASE-8986] - Replace hardcoded special file/dir names with the relative HConstant
+    * [HBASE-9033] - Add tracing to ReplicationSource and enable it in tests
+    * [HBASE-9077] - Make Web ui Fluid width
+    * [HBASE-9101] - Addendum to pluggable RpcScheduler
+    * [HBASE-9103] - Print lines that are longer than allowed in HadoopQA output.
+    * [HBASE-9121] - Update HTrace to 2.00 and add new example usage.
+    * [HBASE-9126] - Make HFile MIN VERSION as 2
+    * [HBASE-9208] - ReplicationLogCleaner slow at large scale
+    * [HBASE-9221] - Provide interface for getting a User in the client
+    * [HBASE-9243] - Add more useful statistics in the HFile tool
+    * [HBASE-9248] - Place holders for tags in 0.96 to accommodate tags in 0.98
+    * [HBASE-9273] - Consolidate isSystemTable checking
+    * [HBASE-9313] - NamespaceJanitor is spammy when the namespace table moves
+    * [HBASE-9314] - Dropping a table always prints a TableInfoMissingException in the master log
+    * [HBASE-9330] - Refactor PE to create HTable the correct way
+    * [HBASE-9333] - hbase.hconnection.threads.max should not be configurable else you get RejectedExecutionException
+    * [HBASE-9343] - Implement stateless scanner for Stargate
+    * [HBASE-9347] - Support for enabling servlet filters for REST service
+    * [HBASE-9369] - Add support for 1- and 2-byte integers in OrderedBytes and provide types
+    * [HBASE-9371] - Eliminate log spam when tailing files
+    * [HBASE-9373] - [replication] data loss because replication doesn't expect partial reads
+    * [HBASE-9385] - Log HBase Master command line arguments on startup
+    * [HBASE-9438] - Enhance hbase shell un/assign to take encoded region name
+    * [HBASE-9443] - ReplicationProtbufUtil.toHLogEntries needs to be either removed or deprecated
+    * [HBASE-9467] - write can be totally blocked temporarily by a write-heavy region
+    * [HBASE-9488] - Improve performance for small scan
+    * [HBASE-9494] - Cleanup inconsistencies in protobuf message and rpc names
+    * [HBASE-9518] - getFakedKey() improvement
+    * [HBASE-9520] - shortcut split asap while requested splitPoint equals with region's startKey
+    * [HBASE-9524] - Multi row get does not return any results even if any one of the rows specified in the query is missing and improve exception handling
+    * [HBASE-9560] - bin/hbase clean --cleanAll should not skip data cleaning if in local mode
+    * [HBASE-9570] - With AccessDeniedException, HBase shell would be better to just display the error message to be user friendly
+    * [HBASE-9594] - Add reference documentation on changes made by HBASE-7634 (Replication handling of peer cluster changes)
+    * [HBASE-9605] - Allow AggregationClient to skip specifying column family for row count aggregate
+    * [HBASE-9606] - Apply small scan to meta scan where rowLimit is low
+    * [HBASE-9654] - Optimize HStore#getRowKeyAtOrBefore() when exact match is found
+    * [HBASE-9656] - Remove decimal places from Requests Per Second stats
+    * [HBASE-9661] - Consistent log severity level guards and statements 
+    * [HBASE-9667] - NullOutputStream removed from Guava 15
+    * [HBASE-9686] - More temporary test files are being left in /tmp/hbase-<user>
+    * [HBASE-9689] - Support using OperationAttributes through shell script
+    * [HBASE-9701] - Make SLEEP_TIME in IntegrationTestMTTR configurable
+    * [HBASE-9703] - DistributedHBaseCluster should not throw exceptions, but do a best effort restore
+    * [HBASE-9714] - add scan logging to IntegrationTestLoadAndVerify
+    * [HBASE-9716] - LoadTestTool should provide default min and max settings to the data generator
+    * [HBASE-9744] - Set io.serializations correctly in HFileOutputFormat.configureIncrementalLoad
+    * [HBASE-9749] - Custom threadpool for Coprocessor obtained HTables
+    * [HBASE-9750] - Add retries around Action server stop/start
+    * [HBASE-9771] - [WebUI] Humanize store and blockcache statistics on RS
+    * [HBASE-9772] - Normalize new client default values
+    * [HBASE-9784] - Switch to Hadoop-2.2 
+    * [HBASE-9831] - 'hbasefsck.numthreads' property isn't passed to hbck via cmdline -D option
+    * [HBASE-9832] - Add MR support for Visibility labels
+    * [HBASE-9855] - evictBlocksByHfileName improvement for bucket cache
+    * [HBASE-9866] - Support the mode where REST server authorizes proxy users
+    * [HBASE-9867] - Save on array copies with a subclass of LiteralByteString
+    * [HBASE-9882] - Support Append Operation with thrift
+    * [HBASE-9884] - Add Thrift and REST support for Visibility Labels
+    * [HBASE-9892] - Add info port to ServerName to support multi instances in a node
+    * [HBASE-9924] - Avoid potential filename conflict in region_mover.rb
+    * [HBASE-9931] - Optional setBatch for CopyTable to copy large rows in batches
+    * [HBASE-9963] - Remove the ReentrantReadWriteLock in the MemStore
+    * [HBASE-9998] - Fix javadoc warnings induced by commits
+    * [HBASE-10001] - Add a coprocessor to help testing the performances without taking into account the i/o
+    * [HBASE-10007] - PerformanceEvaluation: Add sampling and latency collection to randomRead test
+    * [HBASE-10010] - eliminate the put latency spike on the new log file beginning
+    * [HBASE-10020] - Add maven compile-protobuf profile
+    * [HBASE-10021] - Fix the REC_CATCH_EXCEPTION warning under hbase-thrift
+    * [HBASE-10022] - Fix the HE_EQUALS_USE_HASHCODE warning under hbase-hadoop1-compat
+    * [HBASE-10023] - Fix/Suppress all the 10 findbug warnings under hbase-common
+    * [HBASE-10024] - Add an interface to create put with immutable arrays
+    * [HBASE-10048] - Add hlog number metric in regionserver
+    * [HBASE-10049] - Small improvments in region_mover.rb
+    * [HBASE-10062] - Reconsider storing plaintext length in the encrypted block header
+    * [HBASE-10065] - Stronger validation of key unwrapping
+    * [HBASE-10066] - Use ByteArrayOutputStream#writeTo where appropriate
+    * [HBASE-10116] - SlabCache metrics improvements
+    * [HBASE-10157] - Provide CP hook post log replay
+    * [HBASE-10164] - Allow heapsize of different units to be passed as HBASE_HEAPSIZE
+    * [HBASE-10173] - Need HFile version check in security coprocessors
+    * [HBASE-10175] - 2-thread ChaosMonkey steps on its own toes
+    * [HBASE-10213] - Add read log size per second metrics for replication source
+    * [HBASE-10228] - Support setCellVisibility and setAuthorizations in Shell
+    * [HBASE-10229] - Support OperationAttributes in Increment and Append in Shell
+    * [HBASE-10239] - Improve determinism and debugability of TestAccessController
+    * [HBASE-10252] - Don't write back to WAL/memstore when Increment amount is zero (mostly for query rather than update intention)
+    * [HBASE-10263] - make LruBlockCache single/multi/in-memory ratio user-configurable and provide preemptive mode for in-memory type block
+    * [HBASE-10323] - Auto detect data block encoding in HFileOutputFormat
+    * [HBASE-10324] - refactor deferred-log-flush/Durability related interface/code/naming to align with changed semantic of the new write thread model
+    * [HBASE-10331] - Insure security tests use SecureTestUtil methods for grants
+    * [HBASE-10344] - Improve write performance by ignoring sync to hdfs when an asyncer's writes have been synced by other asyncer
+    * [HBASE-10346] - Add Documentation for stateless scanner
+    * [HBASE-10368] - Add Mutation.setWriteToWAL() back to 0.98
+    * [HBASE-10395] - endTime won't be set in VerifyReplication if startTime is not set
+    * [HBASE-10423] - Report back the message of split or rollback failure to the master
+    * [HBASE-10430] - Support compressTags in shell for enabling tag encoding
+    * [HBASE-10457] - Print corrupted file information in SnapshotInfo tool without -file option
+
+** New Feature
+    * [HBASE-1936] - ClassLoader that loads from hdfs; useful adding filters to classpath without having to restart services
+    * [HBASE-4210] - Allow coprocessor to interact with batches per region sent from a client
+    * [HBASE-4811] - Support reverse Scan
+    * [HBASE-6104] - Require EXEC permission to call coprocessor endpoints
+    * [HBASE-6222] - Add per-KeyValue Security
+    * [HBASE-7006] - [MTTR] Improve Region Server Recovery Time - Distributed Log Replay
+    * [HBASE-7244] - Provide a command or argument to startup, that formats znodes if provided
+    * [HBASE-7403] - Online Merge
+    * [HBASE-7415] - [snapshots] Add task information to snapshot operation
+    * [HBASE-7525] - A canary monitoring program specifically for regionserver
+    * [HBASE-7544] - Transparent table/CF encryption
+    * [HBASE-7667] - Support stripe compaction
+    * [HBASE-7826] - Improve Hbase Thrift v1 to return results in sorted order
+    * [HBASE-7842] - Add compaction policy that explores more storefile groups
+    * [HBASE-7875] - introduce a compaction switch in HBase Shell
+    * [HBASE-8163] - MemStoreChunkPool: An improvement for JAVA GC when using MSLAB
+    * [HBASE-8369] - MapReduce over snapshot files
+    * [HBASE-8372] - Provide mutability to CompoundConfiguration
+    * [HBASE-8415] - DisabledRegionSplitPolicy
+    * [HBASE-8496] - Implement tags and the internals of how a tag should look like
+    * [HBASE-8504] - HTable.getRegionsInRange() should provide a non-cached API
+    * [HBASE-8663] - a HBase Shell command to list the tables replicated from current cluster
+    * [HBASE-8753] - Provide new delete flag which can delete all cells under a column-family which have designated timestamp
+    * [HBASE-9047] - Tool to handle finishing replication when the cluster is offline
+    * [HBASE-9299] - Generate the protobuf classes with hadoop-maven-plugin
+    * [HBASE-9630] - Add thread which detects JVM pauses like HADOOP's
+    * [HBASE-9631] - add murmur3 hash
+    * [HBASE-9985] - Add HBase shell command to start/stop tracing
+    * [HBASE-10119] - Allow HBase coprocessors to clean up when they fail
+    * [HBASE-10416] - Improvements to the import flow
+
+** Task
+    * [HBASE-7641] - Port HBASE-6669 'Add BigDecimalColumnInterpreter for doing aggregations using AggregationClient' to trunk
+    * [HBASE-7898] - Serializing Cells over RPC
+    * [HBASE-7994] - Disable unit tests under hbase-examples; they fail too often up on jenkins
+    * [HBASE-8054] - HBASE-7797 Use consistent package name dregs
+    * [HBASE-8090] - Versioning site; part two, publish 0.94 site and add link from main site
+    * [HBASE-8172] - Fix ./bin/*.rb scripts or remove them
+    * [HBASE-8219] - Align Offline Merge with Online Merge
+    * [HBASE-8224] - Publish hbase build against h1 and h2 adding '-hadoop1' or '-hadoop2' to version string
+    * [HBASE-8286] - Move site back up out of hbase-assembly; bad idea
+    * [HBASE-8296] - Add svn ignores to hbase-assembly
+    * [HBASE-8395] - Remove TestFromClientSide.testPoolBehavior
+    * [HBASE-8444] - Acknowledge that 0.95+ requires 1.0.3 hadoop at least.
+    * [HBASE-8574] - Add how to rename a table in the docbook 
+    * [HBASE-8591] - Doc Improvement: Replication blog
+    * [HBASE-8792] - Organize EventType Java Docs
+    * [HBASE-8796] - Add mention of new builds mailing list to site
+    * [HBASE-8829] - Improve failed TestMetaScanner assert message so can see where/why failure
+    * [HBASE-8960] - TestDistributedLogSplitting.testLogReplayForDisablingTable fails sometimes
+    * [HBASE-8962] - Clean up code and remove regular log splitting
+    * [HBASE-8978] - Restore TestLogRollAbort upon review
+    * [HBASE-9011] - Add timeouts to possibly silently failing tests
+    * [HBASE-9111] - Put back TestReplicationKill* except for the MasterRSCompressed one
+    * [HBASE-9135] - Upgrade hadoop 1 version to 1.2.1 which is stable
+    * [HBASE-9153] - Introduce/update a script to generate jdiff reports
+    * [HBASE-9193] - Make what Chaos monkey actions run configurable per test.
+    * [HBASE-9194] - Break HMaster metrics into multiple contexts
+    * [HBASE-9229] - Fix release warning
+    * [HBASE-9258] - HConnectionManager#getKeepAliveZooKeeperWatcher() should be public
+    * [HBASE-9295] - Allow test-patch.sh to detect TreeMap keyed by byte[] which doesn't use proper comparator
+    * [HBASE-9336] - Two css files raise release audit warning
+    * [HBASE-9341] - Document hbase.hstore.compaction.kv.max
+    * [HBASE-9342] - WebUI fixes after bootstrap 3.0 update
+    * [HBASE-9370] - Add logging to Schema change Chaos actions.
+    * [HBASE-9401] - Add getQualifierBufferShallowCopy to Cell Utility.
+    * [HBASE-9495] - Sanity check visiblity and audience for hbase-client and hbase-common apis.
+    * [HBASE-9505] - Enable replication by default
+    * [HBASE-9575] - Add script to automate much of the rc-making process
+    * [HBASE-9583] - add document for getShortMidpointKey
+    * [HBASE-9693] - Fix javadoc warnings
+    * [HBASE-9757] - Reenable fast region move in SlowDeterministicMonkey
+    * [HBASE-9758] - Log missing rows and their regions if ITBLL fails
+    * [HBASE-9837] - Forward port HBASE-9080 'Retain assignment should be used when re-enabling table(s)'
+    * [HBASE-9920] - Lower OK_FINDBUGS_WARNINGS in test-patch.properties
+    * [HBASE-9921] - stripe compaction - findbugs and javadoc issues, some improvements
+    * [HBASE-9954] - Incorporate HTTPS support for HBase
+    * [HBASE-9955] - Make hadoop2 the default and deprecate hadoop1
+    * [HBASE-9991] - Enhance test-patch.sh with post back of snippet of compilation error if any is detected
+    * [HBASE-9994] - ZeroCopyLiteralByteString.wrap() should be used in place of ByteString.copyFrom()
+    * [HBASE-10031] - Add a section on the transparent CF encryption feature to the manual
+    * [HBASE-10134] - Fix findbug warning in VisibilityController
+    * [HBASE-10159] - Replaced deprecated interface Closeable
+    * [HBASE-10183] - Need enforce a reserved range of system tag types
+    * [HBASE-10364] - Allow configuration option for parent znode in LoadTestTool
+    * [HBASE-10473] - Add utility for adorning http Context
+
+** Test
+    * [HBASE-6715] - TestFromClientSide.testCacheOnWriteEvictOnClose is flaky
+    * [HBASE-7718] - TestClassLoading needs to consider runtime classpath in buildCoprocessorJar
+    * [HBASE-7770] - minor integration test framework fixes
+    * [HBASE-7960] - cleanup TestDir in TestHalfStoreFileReader
+    * [HBASE-8106] - Test to check replication log znodes move is done correctly
+    * [HBASE-8260] - create generic integration test for trunk and 94 that is more deterministic, can be run for longer and is less aggressive
+    * [HBASE-8306] - Enhance TestJoinedScanners with ability to specify various parameters
+    * [HBASE-8308] - Lower the number of expected regions in TestTableLockManager#testTableReadLock
+    * [HBASE-8320] - test-patch.sh should post back compilation error against hadoop 2.0
+    * [HBASE-8333] - TestTableLockManager#testDelete may occasionally fail due to lack of synchronization between test and handler thread
+    * [HBASE-8520] - TestIOFencing fails intermittently due to compaction kicking in too soon
+    * [HBASE-8534] - Fix coverage for org.apache.hadoop.hbase.mapreduce
+    * [HBASE-8535] - Test for zk leak does not account for unsynchronized access to zk watcher
+    * [HBASE-8543] - fix coverage org.apache.hadoop.hbase.rest.client
+    * [HBASE-8552] - fix coverage org.apache.hadoop.hbase.rest.filter 
+    * [HBASE-8556] - fix coverage  org.apache.hadoop.hbase.metrics.histogram
+    * [HBASE-8559] - increase unit-test coverage of package org.apache.hadoop.hbase.coprocessor
+    * [HBASE-8569] - Improve coverage in package org.apache.hadoop.hbase.security
+    * [HBASE-8575] - TestDistributedLogSplitting#testMarkRegionsRecoveringInZK fails intermittently due to lack of online region
+    * [HBASE-8611] - Improve test coverage in pkg org.apache.hadoop.hbase.mapred
+    * [HBASE-8646] - Intermittent TestIOFencing#testFencingAroundCompaction failure due to region getting stuck in compaction
+    * [HBASE-8668] - TestHLogSplit.generateHLog() does not use local variables for entries
+    * [HBASE-8816] - Add support of loading multiple tables into LoadTestTool
+    * [HBASE-8845] - Add integration test for split, online merge, and compaction
+    * [HBASE-8857] - TestGet#testDynamicFilter fails sometimes
+    * [HBASE-8860] - TestTableLockManager#testTableReadLock times out sometimes
+    * [HBASE-8907] - TestIOFencing.testFencingAroundCompaction fails sometimes
+    * [HBASE-8928] - Make ChaosMonkey & LoadTest tools extensible, to allow addition of more actions and policies.
+    * [HBASE-8934] - Fix bunch of flaky tests
+    * [HBASE-8941] - TestAccessController.testGlobalPermissionList failed with IndexOutOfBoundsException
+    * [HBASE-8954] - TestSplitLogWorker#testPreemptTask failed
+    * [HBASE-8984] - Test online snapshots with online merge
+    * [HBASE-8994] - Adding log to chaos monkey actions to show what're performed
+    * [HBASE-9017] - Consolidate ChaosMonkey's random objects
+    * [HBASE-9020] - Make hbase-it HBASE_HOME configurable
+    * [HBASE-9068] - Make hadoop 2 the default precommit for trunk
+    * [HBASE-9090] - cleanup snapshot tests setup/teardown code 
+    * [HBASE-9106] - Do not fail TestAcidGuarantees for exceptions on table flush
+    * [HBASE-9123] - Filter protobuf generated code from long line warning
+    * [HBASE-9155] - Enhance LoadTestTool to support updates
+    * [HBASE-9160] - TestNamespaceUpgrade fails on hadoop 2.1 due to existence of .snapshot directory in tar ball
+    * [HBASE-9161] - TestAssignmentManagerOnCluster.testSSHWhenDisablingTableRegionsInOpeningOrPendingOpenState could hang
+    * [HBASE-9217] - TestReplicationSmallTests#testDisableEnable fails intermittently
+    * [HBASE-9225] - Enable TRACE logging in TestReplicationBase
+    * [HBASE-9239] - TestStoreFileBlockCacheSummary#testBlockCacheSummary occasionally fails
+    * [HBASE-9287] - TestCatalogTracker depends on the execution order
+    * [HBASE-9315] - TestLruBlockCache.testBackgroundEvictionThread fails on suse
+    * [HBASE-9376] - TestDistributedLogSplitting creates a MiniCluster rooted at ~/hbase
+    * [HBASE-9441] - Intermittent TestRegionPlacement#testRegionPlacement failure
+    * [HBASE-9447] - TestHBaseFsck could hang sometime
+    * [HBASE-9458] - Intermittent TestFlushSnapshotFromClient#testTakeSnapshotAfterMerge failure
+    * [HBASE-9515] - Intermittent TestZKSecretWatcher#testKeyUpdate failure
+    * [HBASE-9544] - Remove TestAdmin#testIsEnabledOnNonexistentTable()
+    * [HBASE-9655] - IntegrationTestMTTR can loop forever on improperly configured clusters
+    * [HBASE-9664] - ArrayIndexOutOfBoundsException may be thrown in TestZKSecretWatcher
+    * [HBASE-9692] - TestOrderedBytes doesn't display the arrays correctly
+    * [HBASE-9720] - TestSplitTransactionOnCluster#testShutdownFixupWhenDaughterHasSplit occasionally times out
+    * [HBASE-9814] - TestRegionServerCoprocessorExceptionWithRemove mentions master in javadoc
+    * [HBASE-9827] - Intermittent TestLogRollingNoCluster#testContendedLogRolling failure
+    * [HBASE-9836] - Intermittent TestRegionObserverScannerOpenHook#testRegionObserverCompactionTimeStacking failure
+    * [HBASE-9851] - TestHBaseFsck.testQuarantineMissingHFile is flaky
+    * [HBASE-9860] - Intermittent TestHBaseFsck#testMissingRegionInfoQualifier failure due to NullPointerException
+    * [HBASE-9928] - TestHRegion should clean up test-data directory upon completion
+    * [HBASE-10008] - TestNamespaceCommands is flakey on jenkins
+    * [HBASE-10058] - Test for HBASE-9915 (avoid reading index blocks)
+    * [HBASE-10059] - TestSplitLogWorker#testMultipleTasks fails occasionally
+    * [HBASE-10130] - TestSplitLogManager#testTaskResigned fails sometimes
+    * [HBASE-10180] - TestByteBufferIOEngine#testByteBufferIOEngine occasionally fails
+    * [HBASE-10189] - Intermittent TestReplicationSyncUpTool failure
+    * [HBASE-10301] - TestAssignmentManagerOnCluster#testOpenCloseRacing fails intermittently
+    * [HBASE-10394] - Test for Replication with tags
+    * [HBASE-10406] - Column family option is not effective in IntegrationTestSendTraceRequests
+    * [HBASE-10408] - Intermittent TestDistributedLogSplitting#testLogReplayForDisablingTable failure
+    * [HBASE-10440] - integration tests fail due to nonce collisions
+    * [HBASE-10465] - TestZKPermissionsWatcher.testPermissionsWatcher fails sometimes
+    * [HBASE-10475] - TestRegionServerCoprocessorExceptionWithAbort may timeout due to concurrent lease removal
+    * [HBASE-10480] - TestLogRollPeriod#testWithEdits may fail due to insufficient waiting
+
+** Umbrella
+    * [HBASE-8629] - More log edits: we log too much
+    * [HBASE-9945] - Coprocessor loading and execution improvements
+
+** Wish
+    * [HBASE-7462] - TestDrainingServer is an integration test. It should be a unit test instead
