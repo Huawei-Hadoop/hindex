@@ -280,7 +280,7 @@ public class TestIndexImportTsv {
       assertTrue(job.isSuccessful());
       String hfileOutputDir = conf.get(ImportTsv.BULK_OUTPUT_CONF_KEY);
       if (hfileOutputDir != null) {
-        LoadIncrementalHFiles loader = new IndexLoadIncrementalHFiles(htu1.getConfiguration());
+        LoadIncrementalHFiles loader = new IndexLoadIncrementalHFile(htu1.getConfiguration());
         String[] args1 = { hfileOutputDir, tableName };
         assertEquals(0, loader.run(args1));
       }

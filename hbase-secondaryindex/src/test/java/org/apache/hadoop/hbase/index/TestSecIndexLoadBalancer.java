@@ -62,7 +62,7 @@ import org.junit.experimental.categories.Category;
 @Category(LargeTests.class)
 public class TestSecIndexLoadBalancer {
 
-  private static HBaseTestingUtility UTIL = new HBaseTestingUtility();
+  private final static HBaseTestingUtility UTIL = new HBaseTestingUtility();
   
   private static HBaseAdmin admin = null;
 

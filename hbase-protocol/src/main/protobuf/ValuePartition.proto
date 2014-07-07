@@ -1,0 +1,37 @@
+
+option java_package = "org.apache.hadoop.hbase.index.protobuf.generated";
+option java_outer_classname = "ValuePartitionProtos";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+import "Filter.proto";
+
+message ValuePartition {
+  extensions 100 to 199;
+  enum PartitionType{
+	SEPARATOR = 0; 
+    SPATIAL = 1;
+    NONE = 2;
+  }
+  optional PartitionType partition_type = 1 [default = NONE];
+}
+
+message SpatialPartition {
+  extend ValuePartition {
+    required int32 offset = 100;
+    required int32 length = 101;
+  }
+}
+
+message SeparatorPartition {
+  extend ValuePartition {
+    required bytes separator = 102;
+    required int32 position = 103;
+  }
+}
+
+message SingleColumnValuePartitionFilter {
+  required SingleColumnValueFilter single_column_value_filter = 1;
+  required ValuePartition value_partition = 2;
+}
