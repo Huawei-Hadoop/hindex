@@ -27,7 +27,7 @@ outputDirectory=$2
 pushd .
 cd ..
 
-user="rajesh"
+user=`whoami`
 date=`date`
 cwd=`pwd`
 if [ -d .svn ]; then
