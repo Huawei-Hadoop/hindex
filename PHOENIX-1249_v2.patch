@@ -1,0 +1,760 @@
+From 58c48f6593c00f487246eaac9502417ddb625f34 Mon Sep 17 00:00:00 2001
+From: Rajeshbabu Chintaguntla <rajeshbabu.chintaguntla@huawei.com>
+Date: Thu, 18 Sep 2014 16:07:52 +0530
+Subject: [PATCH] PHOENIX-1249 Support local immutable index
+
+---
+ .../java/org/apache/phoenix/end2end/DeleteIT.java  |  11 +-
+ .../phoenix/end2end/index/ImmutableIndexIT.java    |  76 ++++++++++++--
+ .../apache/phoenix/end2end/index/LocalIndexIT.java |  60 ++++++++---
+ .../org/apache/phoenix/compile/DeleteCompiler.java |  14 ++-
+ .../org/apache/phoenix/execute/MutationState.java  |  31 +++++-
+ .../org/apache/phoenix/hbase/index/Indexer.java    |  51 +++++++--
+ .../org/apache/phoenix/index/IndexMaintainer.java  |  29 +++++-
+ .../apache/phoenix/index/PhoenixIndexCodec.java    |   1 +
+ .../org/apache/phoenix/schema/MetaDataClient.java  |   5 +-
+ .../java/org/apache/phoenix/util/IndexUtil.java    | 115 +++++++++++++--------
+ 10 files changed, 300 insertions(+), 93 deletions(-)
+
+diff --git a/phoenix-core/src/it/java/org/apache/phoenix/end2end/DeleteIT.java b/phoenix-core/src/it/java/org/apache/phoenix/end2end/DeleteIT.java
+index 337e49b..677fb53 100644
+--- a/phoenix-core/src/it/java/org/apache/phoenix/end2end/DeleteIT.java
++++ b/phoenix-core/src/it/java/org/apache/phoenix/end2end/DeleteIT.java
+@@ -344,6 +344,15 @@ public class DeleteIT extends BaseHBaseManagedTimeIT {
+     
+     @Test
+     public void testDeleteRowFromTableWithImmutableIndex() throws SQLException {
++        testDeleteRowFromTableWithImmutableIndex(false);
++    }
++    
++    @Test
++    public void testDeleteRowFromTableWithImmutableLocalIndex() throws SQLException {
++        testDeleteRowFromTableWithImmutableIndex(true);
++    }
++    
++    public void testDeleteRowFromTableWithImmutableIndex(boolean localIndex) throws SQLException {
+         Connection con = null;
+         try {
+             boolean autoCommit = false;
+@@ -360,7 +369,7 @@ public class DeleteIT extends BaseHBaseManagedTimeIT {
+                     "USAGE.DB BIGINT," +
+                     "STATS.ACTIVE_VISITOR INTEGER " +
+                     "CONSTRAINT PK PRIMARY KEY (HOST, DOMAIN, FEATURE, DATE)) IMMUTABLE_ROWS=true");
+-            stm.execute("CREATE INDEX web_stats_idx ON web_stats (DATE, FEATURE)");
++            stm.execute("CREATE " + (localIndex ? "LOCAL" : "") + " INDEX web_stats_idx ON web_stats (DATE, FEATURE)");
+             stm.close();
+ 
+             Date date = new Date(0);
+diff --git a/phoenix-core/src/it/java/org/apache/phoenix/end2end/index/ImmutableIndexIT.java b/phoenix-core/src/it/java/org/apache/phoenix/end2end/index/ImmutableIndexIT.java
+index b522931..5624085 100644
+--- a/phoenix-core/src/it/java/org/apache/phoenix/end2end/index/ImmutableIndexIT.java
++++ b/phoenix-core/src/it/java/org/apache/phoenix/end2end/index/ImmutableIndexIT.java
+@@ -113,12 +113,21 @@ public class ImmutableIndexIT extends BaseHBaseManagedTimeIT {
+     
+     @Test
+     public void testIndexWithNullableFixedWithCols() throws Exception {
++        testIndexWithNullableFixedWithCols(false);
++    }
++
++    @Test
++    public void testLocalIndexWithNullableFixedWithCols() throws Exception {
++        testIndexWithNullableFixedWithCols(true);
++    }
++
++    public void testIndexWithNullableFixedWithCols(boolean localIndex) throws Exception {
+         Properties props = PropertiesUtil.deepCopy(TEST_PROPERTIES);
+         Connection conn = DriverManager.getConnection(getUrl(), props);
+         conn.setAutoCommit(false);
+         ensureTableCreated(getUrl(), INDEX_DATA_TABLE);
+         populateTestTable();
+-        String ddl = "CREATE INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
++        String ddl = "CREATE " + (localIndex ? "LOCAL" : "") + " INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
+                     + " (char_col1 ASC, int_col1 ASC)"
+                     + " INCLUDE (long_col1, long_col2)";
+         PreparedStatement stmt = conn.prepareStatement(ddl);
+@@ -126,7 +135,13 @@ public class ImmutableIndexIT extends BaseHBaseManagedTimeIT {
+         
+         String query = "SELECT char_col1, int_col1 from " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE;
+         ResultSet rs = conn.createStatement().executeQuery("EXPLAIN " + query);
+-        assertEquals("CLIENT PARALLEL 1-WAY FULL SCAN OVER INDEX_TEST.IDX", QueryUtil.getExplainPlan(rs));
++        if(localIndex) {
++            assertEquals(
++                "CLIENT PARALLEL 1-WAY RANGE SCAN OVER _LOCAL_IDX_INDEX_TEST.INDEX_DATA_TABLE [-32768]\nCLIENT MERGE SORT",
++                QueryUtil.getExplainPlan(rs));
++        } else {
++            assertEquals("CLIENT PARALLEL 1-WAY FULL SCAN OVER INDEX_TEST.IDX", QueryUtil.getExplainPlan(rs));
++        }
+         
+         rs = conn.createStatement().executeQuery(query);
+         assertTrue(rs.next());
+@@ -191,12 +206,21 @@ public class ImmutableIndexIT extends BaseHBaseManagedTimeIT {
+     
+     @Test
+     public void testDeleteFromAllPKColumnIndex() throws Exception {
++        testDeleteFromAllPKColumnIndex(false);
++    }
++
++    @Test
++    public void testDeleteFromAllPKColumnLocalIndex() throws Exception {
++        testDeleteFromAllPKColumnIndex(true);
++    }
++
++    public void testDeleteFromAllPKColumnIndex(boolean localIndex) throws Exception {
+         Properties props = PropertiesUtil.deepCopy(TEST_PROPERTIES);
+         Connection conn = DriverManager.getConnection(getUrl(), props);
+         conn.setAutoCommit(false);
+         ensureTableCreated(getUrl(), INDEX_DATA_TABLE);
+         populateTestTable();
+-        String ddl = "CREATE INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
++        String ddl = "CREATE " + (localIndex ? "LOCAL" : "") + " INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
+                     + " (long_pk, varchar_pk)"
+                     + " INCLUDE (long_col1, long_col2)";
+         PreparedStatement stmt = conn.prepareStatement(ddl);
+@@ -242,15 +266,24 @@ public class ImmutableIndexIT extends BaseHBaseManagedTimeIT {
+         
+         conn.createStatement().execute("DROP INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE);
+     }
+-    
++
+     @Test
+     public void testDropIfImmutableKeyValueColumn() throws Exception {
++        testDropIfImmutableKeyValueColumn(false);
++    }
++
++    @Test
++    public void testDropIfImmutableKeyValueColumnWithLocalIndex() throws Exception {
++        testDropIfImmutableKeyValueColumn(true);
++    }
++
++    public void testDropIfImmutableKeyValueColumn(boolean localIndex) throws Exception {
+         Properties props = PropertiesUtil.deepCopy(TEST_PROPERTIES);
+         Connection conn = DriverManager.getConnection(getUrl(), props);
+         conn.setAutoCommit(false);
+         ensureTableCreated(getUrl(), INDEX_DATA_TABLE);
+         populateTestTable();
+-        String ddl = "CREATE INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
++        String ddl = "CREATE " + (localIndex ? "LOCAL" : "") + " INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
+                     + " (long_col1)";
+         PreparedStatement stmt = conn.prepareStatement(ddl);
+         stmt.execute();
+@@ -279,12 +312,21 @@ public class ImmutableIndexIT extends BaseHBaseManagedTimeIT {
+     
+     @Test
+     public void testGroupByCount() throws Exception {
++        testGroupByCount(false);
++    }
++
++    @Test
++    public void testGroupByCountWithLocalIndex() throws Exception {
++        testGroupByCount(true);
++    }
++
++    public void testGroupByCount(boolean localIndex) throws Exception {
+         Properties props = PropertiesUtil.deepCopy(TEST_PROPERTIES);
+         Connection conn = DriverManager.getConnection(getUrl(), props);
+         conn.setAutoCommit(false);
+         ensureTableCreated(getUrl(), INDEX_DATA_TABLE);
+         populateTestTable();
+-        String ddl = "CREATE INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
++        String ddl = "CREATE " + (localIndex ? "LOCAL" : "") + " INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
+                 + " (int_col2)";
+         PreparedStatement stmt = conn.prepareStatement(ddl);
+         stmt.execute();
+@@ -298,10 +340,19 @@ public class ImmutableIndexIT extends BaseHBaseManagedTimeIT {
+     
+     @Test   
+     public void testSelectDistinctOnTableWithSecondaryImmutableIndex() throws Exception {
++        testSelectDistinctOnTableWithSecondaryImmutableIndex(false);
++    }
++
++    @Test   
++    public void testSelectDistinctOnTableWithSecondaryImmutableLocalIndex() throws Exception {
++        testSelectDistinctOnTableWithSecondaryImmutableIndex(true);
++    }
++
++    public void testSelectDistinctOnTableWithSecondaryImmutableIndex(boolean localIndex) throws Exception {
+         Properties props = PropertiesUtil.deepCopy(TEST_PROPERTIES);
+         ensureTableCreated(getUrl(), INDEX_DATA_TABLE);
+         populateTestTable();
+-        String ddl = "CREATE INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
++        String ddl = "CREATE " + (localIndex ? "LOCAL" : "") + " INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
+                 + " (int_col2)";
+         Connection conn = null;
+         PreparedStatement stmt = null;
+@@ -334,12 +385,21 @@ public class ImmutableIndexIT extends BaseHBaseManagedTimeIT {
+     
+     @Test
+     public void testInClauseWithIndexOnColumnOfUsignedIntType() throws Exception {
++        testInClauseWithIndexOnColumnOfUsignedIntType(false);
++    }
++
++    @Test
++    public void testInClauseWithLocalIndexOnColumnOfUsignedIntType() throws Exception {
++        testInClauseWithIndexOnColumnOfUsignedIntType(true);
++    }
++
++    public void testInClauseWithIndexOnColumnOfUsignedIntType(boolean localIndex) throws Exception {
+         Properties props = PropertiesUtil.deepCopy(TEST_PROPERTIES);
+         Connection conn = null;
+         PreparedStatement stmt = null;
+         ensureTableCreated(getUrl(), INDEX_DATA_TABLE);
+         populateTestTable();
+-        String ddl = "CREATE INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
++        String ddl = "CREATE " + (localIndex ? "LOCAL" : "") + " INDEX IDX ON " + INDEX_DATA_SCHEMA + QueryConstants.NAME_SEPARATOR + INDEX_DATA_TABLE
+                 + " (int_col1)";
+         try {
+             try {
+diff --git a/phoenix-core/src/it/java/org/apache/phoenix/end2end/index/LocalIndexIT.java b/phoenix-core/src/it/java/org/apache/phoenix/end2end/index/LocalIndexIT.java
+index 06e4d86..8a5c53c 100644
+--- a/phoenix-core/src/it/java/org/apache/phoenix/end2end/index/LocalIndexIT.java
++++ b/phoenix-core/src/it/java/org/apache/phoenix/end2end/index/LocalIndexIT.java
+@@ -132,23 +132,6 @@ public class LocalIndexIT extends BaseIndexIT {
+     }
+ 
+     @Test
+-    public void testLocalIndexOnTableWithImmutableRows() throws Exception {
+-        createBaseTable(DATA_TABLE_NAME, null, null);
+-        Connection conn1 = DriverManager.getConnection(getUrl());
+-        Connection conn2 = DriverManager.getConnection(getUrl());
+-        try {
+-            conn1.createStatement().execute("ALTER TABLE " + DATA_TABLE_NAME + " SET IMMUTABLE_ROWS=true");
+-            conn1.createStatement().execute("CREATE LOCAL INDEX " + INDEX_TABLE_NAME + " ON " + DATA_TABLE_NAME + "(v1)");
+-            fail("Local index aren't allowed on table with immutable rows");
+-        } catch (SQLException e) { }
+-        try {
+-            conn2.createStatement().executeQuery("SELECT * FROM " + DATA_TABLE_FULL_NAME).next();
+-            conn2.unwrap(PhoenixConnection.class).getMetaDataCache().getTable(new PTableKey(null,INDEX_TABLE_NAME));
+-            fail("Local index should not be created.");
+-        } catch (TableNotFoundException e) { }
+-    }
+-
+-    @Test
+     public void testLocalIndexTableRegionSplitPolicyAndSplitKeys() throws Exception {
+         createBaseTable(DATA_TABLE_NAME, null,"('e','i','o')");
+         Connection conn1 = DriverManager.getConnection(getUrl());
+@@ -579,6 +562,49 @@ public class LocalIndexIT extends BaseIndexIT {
+     }
+ 
+     @Test
++    public void testLocalIndexesOnTableWithImmutableRows() throws Exception {
++        createBaseTable(DATA_TABLE_NAME, null, "('e','i','o')");
++        Connection conn1 = DriverManager.getConnection(getUrl());
++        try {
++            conn1.createStatement().execute("ALTER TABLE "+ DATA_TABLE_NAME + " SET IMMUTABLE_ROWS=true");
++            conn1.createStatement().execute("CREATE LOCAL INDEX " + INDEX_TABLE_NAME + " ON " + DATA_TABLE_NAME + "(v1)");
++            conn1.createStatement().execute("CREATE INDEX " + INDEX_TABLE_NAME + "2 ON " + DATA_TABLE_NAME + "(k3)");
++            conn1.commit();
++            conn1.createStatement().execute("UPSERT INTO " + DATA_TABLE_NAME + " values('b',1,2,4,'z')");
++            conn1.createStatement().execute("UPSERT INTO " + DATA_TABLE_NAME + " values('f',1,2,3,'a')");
++            conn1.createStatement().execute("UPSERT INTO " + DATA_TABLE_NAME + " values('j',2,4,2,'a')");
++            conn1.createStatement().execute("UPSERT INTO " + DATA_TABLE_NAME + " values('q',3,1,1,'c')");
++            conn1.commit();
++            conn1 = DriverManager.getConnection(getUrl());
++            ResultSet rs = conn1.createStatement().executeQuery("SELECT COUNT(*) FROM " + DATA_TABLE_NAME);
++            assertTrue(rs.next());
++            assertEquals(4, rs.getInt(1));
++            rs = conn1.createStatement().executeQuery("SELECT v1 FROM " + DATA_TABLE_NAME);
++            assertTrue(rs.next());
++            assertEquals("a", rs.getString("v1"));
++            assertTrue(rs.next());
++            assertEquals("a", rs.getString("v1"));
++            assertTrue(rs.next());
++            assertEquals("c", rs.getString("v1"));
++            assertTrue(rs.next());
++            assertEquals("z", rs.getString("v1"));
++            assertFalse(rs.next());
++            rs = conn1.createStatement().executeQuery("SELECT k3 FROM " + DATA_TABLE_NAME);
++            assertTrue(rs.next());
++            assertEquals(1, rs.getInt("k3"));
++            assertTrue(rs.next());
++            assertEquals(2, rs.getInt("k3"));
++            assertTrue(rs.next());
++            assertEquals(3, rs.getInt("k3"));
++            assertTrue(rs.next());
++            assertEquals(4, rs.getInt("k3"));
++            assertFalse(rs.next());
++        } finally {
++            conn1.close();
++        }
++    }
++
++    @Test
+     public void testLocalIndexScanWithInList() throws Exception {
+         createBaseTable(DATA_TABLE_NAME, null, "('e','i','o')");
+         Connection conn1 = DriverManager.getConnection(getUrl());
+diff --git a/phoenix-core/src/main/java/org/apache/phoenix/compile/DeleteCompiler.java b/phoenix-core/src/main/java/org/apache/phoenix/compile/DeleteCompiler.java
+index 59819b1..c890792 100644
+--- a/phoenix-core/src/main/java/org/apache/phoenix/compile/DeleteCompiler.java
++++ b/phoenix-core/src/main/java/org/apache/phoenix/compile/DeleteCompiler.java
+@@ -70,6 +70,7 @@ import org.apache.phoenix.schema.PTableType;
+ import org.apache.phoenix.schema.ReadOnlyTableException;
+ import org.apache.phoenix.schema.SortOrder;
+ import org.apache.phoenix.schema.TableRef;
++import org.apache.phoenix.schema.PTable.IndexType;
+ import org.apache.phoenix.schema.tuple.Tuple;
+ import org.apache.phoenix.util.IndexUtil;
+ import org.apache.phoenix.util.MetaDataUtil;
+@@ -170,9 +171,18 @@ public class DeleteCompiler {
+         if (!hasImmutableIndex(tableRef)) {
+             return false;
+         }
++        boolean isMultiTenant = tableRef.getTable().isMultiTenant();
+         for (PTable index : tableRef.getTable().getIndexes()) {
+-            for (PColumn column : index.getPKColumns()) {
+-                if (!IndexUtil.isDataPKColumn(column)) {
++            List<PColumn> pkColumns = index.getPKColumns();
++            boolean isLocalIndex = index.getIndexType() == IndexType.LOCAL;
++            int nIndexSaltBuckets =
++                    index.getBucketNum() == null ? 0 : index.getBucketNum();
++            int numNonKVColumns =
++                    (isMultiTenant ? 1 : 0) + (!isLocalIndex && nIndexSaltBuckets > 0 ? 1 : 0)
++                            + (isLocalIndex ? 1 : 0);
++            for (int i = 0; i < pkColumns.size(); i++) {
++                if(i < numNonKVColumns) continue;
++                if (!IndexUtil.isDataPKColumn(pkColumns.get(i))) {
+                     return true;
+                 }
+             }
+diff --git a/phoenix-core/src/main/java/org/apache/phoenix/execute/MutationState.java b/phoenix-core/src/main/java/org/apache/phoenix/execute/MutationState.java
+index 8972650..33cb9f7 100644
+--- a/phoenix-core/src/main/java/org/apache/phoenix/execute/MutationState.java
++++ b/phoenix-core/src/main/java/org/apache/phoenix/execute/MutationState.java
+@@ -19,6 +19,7 @@ package org.apache.phoenix.execute;
+ 
+ import java.io.IOException;
+ import java.sql.SQLException;
++import java.util.ArrayList;
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
+@@ -29,6 +30,7 @@ import org.apache.hadoop.hbase.CellUtil;
+ import org.apache.hadoop.hbase.HConstants;
+ import org.apache.hadoop.hbase.client.HTableInterface;
+ import org.apache.hadoop.hbase.client.Mutation;
++import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+ import org.apache.hadoop.hbase.util.Bytes;
+ import org.apache.hadoop.hbase.util.Pair;
+ import org.apache.phoenix.cache.ServerCacheClient;
+@@ -44,9 +46,12 @@ import org.apache.phoenix.query.QueryConstants;
+ import org.apache.phoenix.schema.IllegalDataException;
+ import org.apache.phoenix.schema.MetaDataClient;
+ import org.apache.phoenix.schema.PColumn;
++import org.apache.phoenix.schema.PIndexState;
+ import org.apache.phoenix.schema.PName;
+ import org.apache.phoenix.schema.PRow;
+ import org.apache.phoenix.schema.PTable;
++import org.apache.phoenix.schema.PTable.IndexType;
++import org.apache.phoenix.schema.PTableKey;
+ import org.apache.phoenix.schema.TableRef;
+ import org.apache.phoenix.trace.util.Tracing;
+ import org.apache.phoenix.util.ByteUtil;
+@@ -169,6 +174,16 @@ public class MutationState implements SQLCloseable {
+     private Iterator<Pair<byte[],List<Mutation>>> addRowMutations(final TableRef tableRef, final Map<ImmutableBytesPtr, Map<PColumn, byte[]>> values, long timestamp, boolean includeMutableIndexes) {
+         final List<Mutation> mutations = Lists.newArrayListWithExpectedSize(values.size());
+         Iterator<Map.Entry<ImmutableBytesPtr,Map<PColumn,byte[]>>> iterator = values.entrySet().iterator();
++        List<PTable> indexes = tableRef.getTable().getIndexes();
++        List<PTable> localIndexes = new ArrayList<PTable>();
++        for(PTable index: indexes) {
++            if(!PIndexState.DISABLE.equals(index.getIndexState()) && index.getIndexType().equals(IndexType.LOCAL)) {
++                localIndexes.add(index);
++            }
++        }
++        ImmutableBytesWritable ptr = new ImmutableBytesWritable();
++        IndexMaintainer.serialize(tableRef.getTable(), ptr, localIndexes, true);
++        byte[] localIndexBytes = ptr.get();
+         while (iterator.hasNext()) {
+             Map.Entry<ImmutableBytesPtr,Map<PColumn,byte[]>> rowEntry = iterator.next();
+             ImmutableBytesPtr key = rowEntry.getKey();
+@@ -180,18 +195,24 @@ public class MutationState implements SQLCloseable {
+                     row.setValue(valueEntry.getKey(), valueEntry.getValue());
+                 }
+             }
+-            mutations.addAll(row.toRowMutations());
++            List<Mutation> rowMutations = row.toRowMutations();
++            if (localIndexBytes != null && localIndexBytes.length > 0) {
++                for (Mutation m : rowMutations) {
++                    m.setAttribute(PhoenixIndexCodec.LOCAL_INDEX_UUID, localIndexBytes);
++                }
++            }
++            mutations.addAll(rowMutations);
+         }
+-        final Iterator<PTable> indexes = // Only maintain tables with immutable rows through this client-side mechanism
++        final Iterator<PTable> indexesItr = // Only maintain tables with immutable rows through this client-side mechanism
+                 (tableRef.getTable().isImmutableRows() || includeMutableIndexes) ? 
+-                        IndexMaintainer.nonDisabledIndexIterator(tableRef.getTable().getIndexes().iterator()) : 
++                        IndexMaintainer.nonLocalIndexIterator(tableRef.getTable().getIndexes().iterator()) : 
+                         Iterators.<PTable>emptyIterator();
+         return new Iterator<Pair<byte[],List<Mutation>>>() {
+             boolean isFirst = true;
+ 
+             @Override
+             public boolean hasNext() {
+-                return isFirst || indexes.hasNext();
++                return isFirst || indexesItr.hasNext();
+             }
+ 
+             @Override
+@@ -200,7 +221,7 @@ public class MutationState implements SQLCloseable {
+                     isFirst = false;
+                     return new Pair<byte[],List<Mutation>>(tableRef.getTable().getPhysicalName().getBytes(),mutations);
+                 }
+-                PTable index = indexes.next();
++                PTable index = indexesItr.next();
+                 List<Mutation> indexMutations;
+                 try {
+                     indexMutations =
+diff --git a/phoenix-core/src/main/java/org/apache/phoenix/hbase/index/Indexer.java b/phoenix-core/src/main/java/org/apache/phoenix/hbase/index/Indexer.java
+index c170c89..7cba6b3 100644
+--- a/phoenix-core/src/main/java/org/apache/phoenix/hbase/index/Indexer.java
++++ b/phoenix-core/src/main/java/org/apache/phoenix/hbase/index/Indexer.java
+@@ -51,10 +51,13 @@ import org.apache.hadoop.hbase.regionserver.ScanType;
+ import org.apache.hadoop.hbase.regionserver.Store;
+ import org.apache.hadoop.hbase.regionserver.wal.HLogKey;
+ import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
++import org.apache.hadoop.hbase.util.Bytes;
+ import org.apache.hadoop.hbase.util.Pair;
+ import org.apache.phoenix.hbase.index.builder.IndexBuildManager;
+ import org.apache.phoenix.hbase.index.builder.IndexBuilder;
++import org.apache.phoenix.hbase.index.covered.update.IndexUpdateManager;
+ import org.apache.phoenix.hbase.index.table.HTableInterfaceReference;
++import org.apache.phoenix.hbase.index.util.GenericKeyValueBuilder;
+ import org.apache.phoenix.hbase.index.util.ImmutableBytesPtr;
+ import org.apache.phoenix.hbase.index.util.IndexManagementUtil;
+ import org.apache.phoenix.hbase.index.util.VersionUtil;
+@@ -64,11 +67,16 @@ import org.apache.phoenix.hbase.index.write.IndexWriter;
+ import org.apache.phoenix.hbase.index.write.recovery.PerRegionIndexWriteCache;
+ import org.apache.phoenix.hbase.index.write.recovery.StoreFailuresInCachePolicy;
+ import org.apache.phoenix.hbase.index.write.recovery.TrackingParallelWriterIndexCommitter;
++import org.apache.phoenix.index.IndexMaintainer;
++import org.apache.phoenix.index.PhoenixIndexCodec;
+ import org.apache.phoenix.trace.TracingCompat;
+ import org.apache.phoenix.trace.util.NullSpan;
++import org.apache.phoenix.util.IndexUtil;
++import org.apache.phoenix.util.MetaDataUtil;
+ import org.cloudera.htrace.Span;
+ import org.cloudera.htrace.Trace;
+ 
++import com.google.common.collect.Lists;
+ import com.google.common.collect.Multimap;
+ 
+ /**
+@@ -223,6 +231,7 @@ public class Indexer extends BaseRegionObserver {
+     			Durability.SYNC_WAL : defaultDurability;
+     }
+     Durability durability = Durability.SKIP_WAL;
++    List<Mutation> dataMutations = new ArrayList<Mutation>(miniBatchOp.size());
+     for (int i = 0; i < miniBatchOp.size(); i++) {
+       Mutation m = miniBatchOp.getOperation(i);
+       // skip this mutation if we aren't enabling indexing
+@@ -230,7 +239,10 @@ public class Indexer extends BaseRegionObserver {
+       // should be indexed, which means we need to expose another method on the builder. Such is the
+       // way optimization go though.
+       if (!this.builder.isEnabled(m)) {
+-        continue;
++          if(m.getAttribute(PhoenixIndexCodec.LOCAL_INDEX_UUID)!=null) {
++              dataMutations.add(m);
++          }
++          continue;
+       }
+       
+       Durability effectiveDurablity = (m.getDurability() == Durability.USE_DEFAULT) ? 
+@@ -251,9 +263,26 @@ public class Indexer extends BaseRegionObserver {
+     }
+     
+     // early exit if it turns out we don't have any edits
+-    if (mutations.entrySet().size() == 0) {
++    if (mutations.entrySet().isEmpty() && dataMutations.isEmpty()) {
+       return;
+     }
++    IndexUpdateManager manager = null;
++    if(!dataMutations.isEmpty()) {
++        manager = new IndexUpdateManager();
++        HRegionInfo regionInfo = c.getEnvironment().getRegion().getRegionInfo();
++        byte[] localIndexBytes = dataMutations.get(0).getAttribute(PhoenixIndexCodec.LOCAL_INDEX_UUID);
++        List<Mutation> indexMutations = Lists.newArrayListWithExpectedSize(dataMutations.size());
++        List<IndexMaintainer> indexMaintainers = IndexMaintainer.deserialize(localIndexBytes);
++        for (IndexMaintainer maintainer : indexMaintainers) {
++            IndexUtil.generateIndexData(dataMutations, new ImmutableBytesPtr(localIndexBytes),
++                GenericKeyValueBuilder.INSTANCE, maintainer, indexMutations,
++                regionInfo.getStartKey(), regionInfo.getEndKey());
++        }
++        byte[] tableName = Bytes.toBytes(MetaDataUtil.getLocalIndexTableName(c.getEnvironment().getRegion().getTableDesc().getNameAsString()));
++        for(Mutation m: indexMutations) {
++            manager.addIndexUpdate(tableName, m);
++        }
++    }
+ 
+     // dump all the index updates into a single WAL. They will get combined in the end anyways, so
+     // don't worry which one we get
+@@ -270,9 +299,11 @@ public class Indexer extends BaseRegionObserver {
+         }
+ 
+     // get the index updates for all elements in this batch
+-    Collection<Pair<Mutation, byte[]>> indexUpdates =
+-        this.builder.getIndexUpdate(miniBatchOp, mutations.values());
+-
++    Collection<Pair<Mutation, byte[]>> indexUpdates = new ArrayList<Pair<Mutation, byte[]>>();
++    if(!mutations.entrySet().isEmpty() ) {
++        indexUpdates.addAll(this.builder.getIndexUpdate(miniBatchOp, mutations.values()));
++    }
++    if (manager != null) indexUpdates.addAll(manager.toMap());
+         current.addTimelineAnnotation("Built index updates, doing preStep");
+         TracingCompat.addAnnotation(current, "index update count", indexUpdates.size());
+ 
+@@ -416,10 +447,12 @@ public class Indexer extends BaseRegionObserver {
+   private void doPostWithExceptions(WALEdit edit, Mutation m, final Durability durability)
+       throws Exception {
+     //short circuit, if we don't need to do any work
+-    if (durability == Durability.SKIP_WAL || !this.builder.isEnabled(m)) {
+-      // already did the index update in prePut, so we are done
+-      return;
+-    }
++        if (durability == Durability.SKIP_WAL
++                || (!this.builder.isEnabled(m) && m
++                        .getAttribute(PhoenixIndexCodec.LOCAL_INDEX_UUID) == null)) {
++            // already did the index update in prePut, so we are done
++            return;
++        }
+ 
+         // get the current span, or just use a null-span to avoid a bunch of if statements
+         Span current = Trace.startSpan("Completing index writes").getSpan();
+diff --git a/phoenix-core/src/main/java/org/apache/phoenix/index/IndexMaintainer.java b/phoenix-core/src/main/java/org/apache/phoenix/index/IndexMaintainer.java
+index 68cdb26..3468722 100644
+--- a/phoenix-core/src/main/java/org/apache/phoenix/index/IndexMaintainer.java
++++ b/phoenix-core/src/main/java/org/apache/phoenix/index/IndexMaintainer.java
+@@ -135,6 +135,15 @@ public class IndexMaintainer implements Writable, Iterable<ColumnReference> {
+         });
+     }
+     
++    public static Iterator<PTable> nonLocalIndexIterator(Iterator<PTable> indexes) {
++        return Iterators.filter(indexes, new Predicate<PTable>() {
++            @Override
++            public boolean apply(PTable index) {
++                return !PIndexState.DISABLE.equals(index.getIndexState()) && !index.getIndexType().equals(IndexType.LOCAL);
++            }
++        });
++    }
++
+     /**
+      * For client-side to serialize all IndexMaintainers for a given table
+      * @param dataTable data table
+@@ -146,15 +155,27 @@ public class IndexMaintainer implements Writable, Iterable<ColumnReference> {
+     }
+ 
+     /**
+-     * For client-side to serialize all IndexMaintainers for a given table
++     * For client-side to serialize the specified index maintainers for a give table.
+      * @param dataTable data table
+      * @param ptr bytes pointer to hold returned serialized value
+      * @param indexes indexes to serialize
+      */
+     public static void serialize(PTable dataTable, ImmutableBytesWritable ptr,
+             List<PTable> indexes) {
++        serialize(dataTable, ptr, indexes, false);
++    }
++    
++    /**
++     * For client-side to serialize the specified index maintainers for a give table.
++     * @param dataTable data table
++     * @param ptr bytes pointer to hold returned serialized value
++     * @param indexes indexes to serialize
++     * @param forceSerialize if true serialize the non disabled indexes in any case.
++     */
++    public static void serialize(PTable dataTable, ImmutableBytesWritable ptr,
++            List<PTable> indexes, boolean forceSerialize) {
+         Iterator<PTable> indexesItr = nonDisabledIndexIterator(indexes.iterator());
+-        if ((dataTable.isImmutableRows()) || !indexesItr.hasNext()) {
++        if ((!forceSerialize && dataTable.isImmutableRows()) || !indexesItr.hasNext()) {
+             ptr.set(ByteUtil.EMPTY_BYTE_ARRAY);
+             return;
+         }
+@@ -1167,4 +1188,8 @@ public class IndexMaintainer implements Writable, Iterable<ColumnReference> {
+             }
+         };
+     }
++
++    public byte[] getDataEmptyKeyValueCF() {
++        return dataEmptyKeyValueCF;
++    }
+ }
+diff --git a/phoenix-core/src/main/java/org/apache/phoenix/index/PhoenixIndexCodec.java b/phoenix-core/src/main/java/org/apache/phoenix/index/PhoenixIndexCodec.java
+index f061b8f..8bae573 100644
+--- a/phoenix-core/src/main/java/org/apache/phoenix/index/PhoenixIndexCodec.java
++++ b/phoenix-core/src/main/java/org/apache/phoenix/index/PhoenixIndexCodec.java
+@@ -59,6 +59,7 @@ import com.google.common.collect.Lists;
+ public class PhoenixIndexCodec extends BaseIndexCodec {
+     public static final String INDEX_MD = "IdxMD";
+     public static final String INDEX_UUID = "IdxUUID";
++    public static final String LOCAL_INDEX_UUID = "LclIdxUUID";
+ 
+     private RegionCoprocessorEnvironment env;
+     private KeyValueBuilder kvBuilder;
+diff --git a/phoenix-core/src/main/java/org/apache/phoenix/schema/MetaDataClient.java b/phoenix-core/src/main/java/org/apache/phoenix/schema/MetaDataClient.java
+index 56b6604..0b40613 100644
+--- a/phoenix-core/src/main/java/org/apache/phoenix/schema/MetaDataClient.java
++++ b/phoenix-core/src/main/java/org/apache/phoenix/schema/MetaDataClient.java
+@@ -553,7 +553,7 @@ public class MetaDataClient {
+                 List<PTable> indexes = Lists.newArrayListWithExpectedSize(1);
+                 // Only build newly created index.
+                 indexes.add(index);
+-                IndexMaintainer.serialize(dataTable, ptr, indexes);
++                IndexMaintainer.serialize(dataTable, ptr, indexes, true);
+                 scan.setAttribute(BaseScannerRegionObserver.LOCAL_INDEX_BUILD, ByteUtil.copyKeyBytesIfNecessary(ptr));
+                 // By default, we'd use a FirstKeyOnly filter as nothing else needs to be projected for count(*).
+                 // However, in this case, we need to project all of the data columns that contribute to the index.
+@@ -701,9 +701,6 @@ public class MetaDataClient {
+                  * 2) for a view on an index.
+                  */
+                 if (statement.getIndexType() == IndexType.LOCAL || (dataTable.getType() == PTableType.VIEW && dataTable.getViewType() != ViewType.MAPPED)) {
+-                    if (dataTable.isImmutableRows() && statement.getIndexType() == IndexType.LOCAL) {
+-                        throw new SQLExceptionInfo.Builder(SQLExceptionCode.NO_LOCAL_INDEX_ON_TABLE_WITH_IMMUTABLE_ROWS).setTableName(indexTableName.getTableName()).build().buildException();
+-                    }
+                     allocateIndexId = true;
+                     // Next add index ID column
+                     PDataType dataType = MetaDataUtil.getViewIndexIdDataType();
+diff --git a/phoenix-core/src/main/java/org/apache/phoenix/util/IndexUtil.java b/phoenix-core/src/main/java/org/apache/phoenix/util/IndexUtil.java
+index b2a04cf..ca377d7 100644
+--- a/phoenix-core/src/main/java/org/apache/phoenix/util/IndexUtil.java
++++ b/phoenix-core/src/main/java/org/apache/phoenix/util/IndexUtil.java
+@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
+ import java.io.DataInputStream;
+ import java.io.IOException;
+ import java.sql.SQLException;
++import java.util.Collections;
+ import java.util.List;
+ import java.util.Map;
+ 
+@@ -161,61 +162,85 @@ public class IndexUtil {
+                 Bytes.compareTo(QueryConstants.EMPTY_COLUMN_BYTES, ref.getQualifier()) == 0);
+     }
+ 
++    private static boolean isEmptyKeyValue(IndexMaintainer indexMaintainer, ColumnReference ref) {
++        byte[] emptyKeyValueCF = indexMaintainer.getDataEmptyKeyValueCF();
++        return (Bytes.compareTo(emptyKeyValueCF, ref.getFamily()) == 0 &&
++                Bytes.compareTo(QueryConstants.EMPTY_COLUMN_BYTES, ref.getQualifier()) == 0);
++    }
++
+     public static List<Mutation> generateIndexData(final PTable table, PTable index,
+             List<Mutation> dataMutations, ImmutableBytesWritable ptr, final KeyValueBuilder kvBuilder)
+             throws SQLException {
+         try {
+-            IndexMaintainer maintainer = index.getIndexMaintainer(table);
+-            List<Mutation> indexMutations = Lists.newArrayListWithExpectedSize(dataMutations.size());
+-           for (final Mutation dataMutation : dataMutations) {
+-                long ts = MetaDataUtil.getClientTimeStamp(dataMutation);
+-                ptr.set(dataMutation.getRow());
+-                if (dataMutation instanceof Put) {
+-                    // TODO: is this more efficient than looking in our mutation map
+-                    // using the key plus finding the PColumn?
+-                    ValueGetter valueGetter = new ValueGetter() {
+-        
+-                        @Override
+-                        public ImmutableBytesPtr getLatestValue(ColumnReference ref) {
+-                            // Always return null for our empty key value, as this will cause the index
+-                            // maintainer to always treat this Put as a new row.
+-                            if (isEmptyKeyValue(table, ref)) {
+-                                return null;
+-                            }
+-                            Map<byte [], List<Cell>> familyMap = dataMutation.getFamilyCellMap();
+-                            byte[] family = ref.getFamily();
+-                            List<Cell> kvs = familyMap.get(family);
+-                            if (kvs == null) {
+-                                return null;
+-                            }
+-                            byte[] qualifier = ref.getQualifier();
+-                            for (Cell kv : kvs) {
+-                                if (Bytes.compareTo(kv.getFamilyArray(), kv.getFamilyOffset(), kv.getFamilyLength(), family, 0, family.length) == 0 &&
+-                                    Bytes.compareTo(kv.getQualifierArray(), kv.getQualifierOffset(), kv.getQualifierLength(), qualifier, 0, qualifier.length) == 0) {
+-                                  ImmutableBytesPtr ptr = new ImmutableBytesPtr();
+-                                  kvBuilder.getValueAsPtr(kv, ptr);
+-                                  return ptr;
+-                                }
+-                            }
++           final IndexMaintainer maintainer = index.getIndexMaintainer(table);
++           List<Mutation> indexMutations = Lists.newArrayListWithExpectedSize(dataMutations.size());
++           return generateIndexData(dataMutations, ptr, kvBuilder, maintainer, indexMutations);
++        } catch (IOException e) {
++            throw new SQLException(e);
++        }
++    }
++
++    public static List<Mutation> generateIndexData(List<Mutation> dataMutations,
++            ImmutableBytesWritable ptr, final KeyValueBuilder kvBuilder,
++            final IndexMaintainer maintainer, List<Mutation> indexMutations) throws IOException {
++        return generateIndexData(dataMutations, ptr, kvBuilder, maintainer, indexMutations, null, null);
++    }
++
++    public static List<Mutation> generateIndexData(List<Mutation> dataMutations,
++            ImmutableBytesWritable ptr, final KeyValueBuilder kvBuilder,
++            final IndexMaintainer maintainer, List<Mutation> indexMutations, byte[] regionStartKey,
++            byte[] regionEndKey) throws IOException {
++        for (final Mutation dataMutation : dataMutations) {
++            long ts = MetaDataUtil.getClientTimeStamp(dataMutation);
++            ptr.set(dataMutation.getRow());
++            if (dataMutation instanceof Put) {
++                // TODO: is this more efficient than looking in our mutation map
++                // using the key plus finding the PColumn?
++                ValueGetter valueGetter = new ValueGetter() {
++
++                    @Override
++                    public ImmutableBytesPtr getLatestValue(ColumnReference ref) {
++                        // Always return null for our empty key value, as this will cause the index
++                        // maintainer to always treat this Put as a new row.
++                        if (isEmptyKeyValue(maintainer, ref)) {
++                            return null;
++                        }
++                        Map<byte[], List<Cell>> familyMap = dataMutation.getFamilyCellMap();
++                        byte[] family = ref.getFamily();
++                        List<Cell> kvs = familyMap.get(family);
++                        if (kvs == null) {
+                             return null;
+                         }
+-                        
+-                    };
+-                    indexMutations.add(maintainer.buildUpdateMutation(kvBuilder, valueGetter, ptr, ts, null, null));
+-                } else {
+-                    // We can only generate the correct Delete if we have no KV columns in our index.
+-                    // Perhaps it'd be best to ignore Delete mutations all together here, as this
+-                    // gets triggered typically for an initial population where Delete markers make
+-                    // little sense.
+-                    if (maintainer.getIndexedColumns().isEmpty()) {
+-                        indexMutations.add(maintainer.buildDeleteMutation(kvBuilder, ptr, ts));
++                        byte[] qualifier = ref.getQualifier();
++                        for (Cell kv : kvs) {
++                            if (Bytes.compareTo(kv.getFamilyArray(), kv.getFamilyOffset(),
++                                kv.getFamilyLength(), family, 0, family.length) == 0
++                                    && Bytes.compareTo(kv.getQualifierArray(),
++                                        kv.getQualifierOffset(), kv.getQualifierLength(),
++                                        qualifier, 0, qualifier.length) == 0) {
++                                ImmutableBytesPtr ptr = new ImmutableBytesPtr();
++                                kvBuilder.getValueAsPtr(kv, ptr);
++                                return ptr;
++                            }
++                        }
++                        return null;
+                     }
++
++                };
++                indexMutations.add(maintainer.buildUpdateMutation(kvBuilder, valueGetter, ptr, ts,
++                    regionStartKey, regionEndKey));
++            } else {
++                // We can only generate the correct Delete if we have no KV columns in our index.
++                // Perhaps it'd be best to ignore Delete mutations all together here, as this
++                // gets triggered typically for an initial population where Delete markers make
++                // little sense.
++                if (maintainer.getIndexedColumns().isEmpty()) {
++                    indexMutations.add(maintainer.buildDeleteMutation(kvBuilder, null, ptr,
++                        Collections.<KeyValue> emptyList(), ts, regionStartKey, regionEndKey));
+                 }
+             }
+-            return indexMutations;
+-        } catch (IOException e) {
+-            throw new SQLException(e);
+         }
++        return indexMutations;
+     }
+ 
+     public static boolean isDataPKColumn(PColumn column) {
+-- 
+1.9.4.msysgit.0
+
