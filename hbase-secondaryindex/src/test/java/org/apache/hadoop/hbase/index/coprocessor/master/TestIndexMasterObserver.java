@@ -654,4 +654,17 @@ public class TestIndexMasterObserver {
     assertEquals(DataBlockEncoding.PREFIX,
       tableDescriptor.getColumnFamilies()[0].getDataBlockEncoding());
   }
+
+  @Test(timeout = 180000)
+  public void testRecreatingIndexedTableWithoutIndex() throws Exception {
+    String userTableName = "testRecreatingIndexedTableWithoutIndex";
+    HTableDescriptor htd = TestUtils.createIndexedHTableDescriptor(userTableName, "col1", "Index1", "col1", "ql");
+    admin.createTable(htd);
+    admin.disableTable(userTableName);
+    admin.deleteTable(userTableName);
+    HTableDescriptor htd2 = new HTableDescriptor(userTableName);
+    htd2.addFamily(new HColumnDescriptor("col1"));
+    admin.createTable(htd2);
+    assertFalse(admin.tableExists(IndexUtils.getIndexTableName(TableName.valueOf(userTableName))));
+  }
 }

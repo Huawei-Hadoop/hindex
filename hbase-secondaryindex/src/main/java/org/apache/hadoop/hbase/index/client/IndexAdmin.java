@@ -217,5 +217,19 @@ public class IndexAdmin extends HBaseAdmin {
       return isTableDisabled;
     }
   }
+  
+  @Override
+  public void deleteTable(TableName tableName) throws IOException {
+    super.deleteTable(tableName);
+    boolean indexEnabled = getConfiguration().getBoolean("hbase.use.secondary.index", false);
+    if (indexEnabled && !IndexUtils.isIndexTable(tableName.getNameAsString())) {
+      TableName indexTableName =
+          TableName.valueOf(IndexUtils.getIndexTableName(tableName.getNameAsString()));
+      if (getConnection().isTableDisabled(indexTableName)) {
+        waitUntilTableIsDeleted(indexTableName);
+      }
+      
+    } 
+  }
 
 }

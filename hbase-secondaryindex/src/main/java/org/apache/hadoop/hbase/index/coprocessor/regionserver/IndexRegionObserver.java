@@ -616,7 +616,7 @@ public class IndexRegionObserver extends BaseRegionObserver {
           indexRegion.forceSplit(splitKey);
           PairOfSameType<HRegion> daughterRegions = st.stepsBeforePONR(rs, rs, false);
           splitThreadLocal.set(new SplitInfo(indexRegion, daughterRegions, st));
-          HRegionInfo copyOfParent = new HRegionInfo(region.getRegionInfo());
+          HRegionInfo copyOfParent = new HRegionInfo(indexRegion.getRegionInfo());
           copyOfParent.setOffline(true);
           copyOfParent.setSplit(true);
           // Put for parent

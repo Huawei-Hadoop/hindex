@@ -91,6 +91,7 @@ public class IndexMasterObserver extends BaseMasterObserver {
     LOG.info("Entered into preCreateTable.");
     MasterServices master = ctx.getEnvironment().getMasterServices();
     byte[] indexBytes = desc.getValue(Constants.INDEX_SPEC_KEY);
+    idxManager.removeIndices(desc.getNameAsString());
     if (indexBytes != null) {
       Map<Column, Pair<ValueType, Integer>> indexColDetails =
           new HashMap<Column, Pair<ValueType, Integer>>();
@@ -626,6 +627,7 @@ public class IndexMasterObserver extends BaseMasterObserver {
     TableName indexTableName = TableName.valueOf(IndexUtils.getIndexTableName(tableName));
     boolean indexTablePresent =
         master.getAssignmentManager().getZKTable().isTablePresent(indexTableName);
+    idxManager.removeIndices(tableName.getNameAsString());
     // Not checking for disabled state because before deleting user table both user and index table
     // should be disabled.
     if ((!IndexUtils.isIndexTable(tableName)) && indexTablePresent) {
