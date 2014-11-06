@@ -51,10 +51,12 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.hadoop.hbase.index.ColumnQualifier;
 import org.apache.hadoop.hbase.index.Constants;
 import org.apache.hadoop.hbase.index.IndexSpecification;
 import org.apache.hadoop.hbase.index.TableIndices;
+import org.apache.hadoop.hbase.index.exception.StaleRegionBoundaryException;
 import org.apache.hadoop.hbase.index.io.IndexHalfStoreFileReader;
 import org.apache.hadoop.hbase.index.manager.IndexManager;
 import org.apache.hadoop.hbase.index.util.ByteArrayBuilder;
@@ -462,13 +464,23 @@ public class IndexRegionObserver extends BaseRegionObserver {
   }
 
   public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e, Scan scan,
-      RegionScanner s) {
+      final RegionScanner s) throws IOException {
     HRegion region = e.getEnvironment().getRegion();
     HTableDescriptor tableDesc = region.getTableDesc();
     String tableName = tableDesc.getNameAsString();
     HRegionServer rs = (HRegionServer) e.getEnvironment().getRegionServerServices();
     if (isNotIndexedTableDescriptor(tableDesc)) {
       return s;
+    }
+    byte[] indexBytes = scan.getAttribute(Constants.BUILD_INDICES);
+    if (indexBytes != null) {
+      checkScanBoundaries(e.getEnvironment().getRegion(), scan, s);
+      return buildIndex(e, s, region, indexBytes);
+    }
+    indexBytes = scan.getAttribute(Constants.DROP_INDICES);
+    if (indexBytes != null) {
+      checkScanBoundaries(e.getEnvironment().getRegion(), scan, s);
+      return dropIndex(e, s, region, indexBytes);
     }
     // If the passed region is a region from an indexed table
     SeekAndReadRegionScanner bsrs = null;
@@ -516,6 +528,215 @@ public class IndexRegionObserver extends BaseRegionObserver {
     } else {
       return s;
     }
+  }
+
+  private void checkScanBoundaries(HRegion region, Scan scan, RegionScanner rs)
+      throws StaleRegionBoundaryException {
+    if (Bytes.compareTo(region.getStartKey(), scan.getStartRow()) != 0
+        || Bytes.compareTo(region.getEndKey(), scan.getStopRow()) != 0) {
+      try{
+        rs.close();
+      } catch (Throwable e) {
+        // skip
+      }
+      throw new StaleRegionBoundaryException(
+        "The region key range and scan row key range are not same.");
+    }
+  }
+
+  private RegionScanner buildIndex(ObserverContext<RegionCoprocessorEnvironment> e, final RegionScanner s,
+      HRegion region, byte[] indexesBytes) throws IOException {
+    // TODO: do this under lock...other wise may face inconsistent results during split....
+    TableIndices indices = new TableIndices();
+    indices.readFields(indexesBytes);
+    HRegion indexRegion = getIndexRegion(e.getEnvironment());
+    boolean hasMore = false;
+    try {
+      e.getEnvironment().getRegion().startRegionOperation();
+      do {
+        // TODO: Write index puts into batches...than writing individual. Batch size can be
+        // configurable.
+        List<Cell> results = new ArrayList<Cell>();
+        hasMore = s.nextRaw(results);
+        if (!results.isEmpty()) {
+          Put p =
+              new Put(results.get(0).getRowArray(), results.get(0).getRowOffset(), results.get(0)
+                  .getRowLength());
+          for (Cell c : results) {
+            p.add(c);
+          }
+          for (IndexSpecification spec : indices.getIndices()) {
+            Put indexPut = IndexUtils.prepareIndexPut(p, spec, region.getStartKey());
+            if(indexPut != null) {
+              indexRegion.put(indexPut);
+            }
+          }
+        }
+      } while (hasMore);
+    } finally {
+      e.getEnvironment().getRegion().closeRegionOperation();
+    }
+    RegionScanner scanner = new RegionScanner() {
+      
+      @Override
+      public boolean next(List<Cell> result, int limit) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public boolean next(List<Cell> results) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public void close() throws IOException {
+        s.close();
+      }
+      
+      @Override
+      public boolean reseek(byte[] row) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public boolean nextRaw(List<Cell> result, int limit) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public boolean nextRaw(List<Cell> result) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public boolean isFilterDone() throws IOException {
+        return false;
+      }
+      
+      @Override
+      public HRegionInfo getRegionInfo() {
+        return s.getRegionInfo();
+      }
+      
+      @Override
+      public long getMvccReadPoint() {
+        return s.getMvccReadPoint();
+      }
+      
+      @Override
+      public long getMaxResultSize() {
+        return s.getMaxResultSize();
+      }
+    };
+    return scanner;
+  }
+
+  private RegionScanner dropIndex(ObserverContext<RegionCoprocessorEnvironment> e, final RegionScanner s,
+      HRegion region, byte[] indexesBytes) throws IOException {
+    // TODO:2) do the deletes in batch...so it will be faster..
+    TableIndices indices = new TableIndices();
+    indices.readFields(indexesBytes);
+    HRegion indexRegion = getIndexRegion(e.getEnvironment());
+    try {
+      e.getEnvironment().getRegion().startRegionOperation();
+      for (IndexSpecification spec : indices.getIndices()) {
+        Scan scan = new Scan();
+        byte[] indexName = Bytes.toBytes(spec.getName());
+        byte[] startKey = indexRegion.getRegionInfo().getStartKey();
+        int rowLength = indexRegion.getRegionInfo().getStartKey().length + indexName.length;
+        ByteArrayBuilder row = ByteArrayBuilder.allocate(rowLength + 1);
+        row.put(startKey);
+        row.position(row.position() + 1);
+        row.put(indexName);
+        scan.setFilter(new FirstKeyOnlyFilter());
+        scan.setStartRow(row.array());
+        scan.setStopRow(IndexUtils.incrementValue(row.array(), true));
+        boolean hasNext = false;
+        RegionScanner scanner = null;
+        try {
+          do {
+            List<Cell> results = new ArrayList<Cell>();
+            scanner = indexRegion.getScanner(scan);
+            hasNext = scanner.next(results);
+            if (!results.isEmpty()) {
+              Delete d =
+                  new Delete(results.get(0).getRowArray(), results.get(0).getRowOffset(), results
+                      .get(0).getRowLength());
+              indexRegion.delete(d);
+            }
+          } while (hasNext);
+        } finally {
+          if (scanner != null) scanner.close();
+        }
+      }
+    } finally {
+      e.getEnvironment().getRegion().closeRegionOperation();
+    }
+    RegionScanner scanner = new RegionScanner() {
+      
+      @Override
+      public boolean next(List<Cell> result, int limit) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public boolean next(List<Cell> results) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public void close() throws IOException {
+        s.close();
+      }
+      
+      @Override
+      public boolean reseek(byte[] row) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public boolean nextRaw(List<Cell> result, int limit) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public boolean nextRaw(List<Cell> result) throws IOException {
+        return false;
+      }
+      
+      @Override
+      public boolean isFilterDone() throws IOException {
+        return false;
+      }
+      
+      @Override
+      public HRegionInfo getRegionInfo() {
+        return s.getRegionInfo();
+      }
+      
+      @Override
+      public long getMvccReadPoint() {
+        return s.getMvccReadPoint();
+      }
+      
+      @Override
+      public long getMaxResultSize() {
+        return s.getMaxResultSize();
+      }
+    };
+    return scanner;
+  }
+  
+  public static HRegion getIndexRegion(RegionCoprocessorEnvironment environment) throws IOException {
+    HRegion userRegion = environment.getRegion();
+    TableName indexTableName = TableName.valueOf(IndexUtils.getIndexTableName(userRegion.getTableDesc().getTableName()));
+    List<HRegion> onlineRegions = environment.getRegionServerServices().getOnlineRegions(indexTableName);
+    for(HRegion indexRegion : onlineRegions) {
+        if (Bytes.compareTo(userRegion.getStartKey(), indexRegion.getStartKey()) == 0) {
+            return indexRegion;
+        }
+    }
+    return null;
   }
 
   public boolean preScannerNext(ObserverContext<RegionCoprocessorEnvironment> e, InternalScanner s,

@@ -1439,7 +1439,7 @@ public class TestIndexRegionObserverForScan {
   public static class MockedRegionObserver extends IndexRegionObserver {
     @Override
     public RegionScanner postScannerOpen(ObserverContext<RegionCoprocessorEnvironment> e,
-        Scan scan, RegionScanner s) {
+        Scan scan, RegionScanner s) throws IOException {
       if (e.getEnvironment().getRegion().getTableDesc().getTableName().getNameAsString()
           .equals("testScanShouldBeSuccessfulEvenIfExceptionIsThrownFromPostScannerOpen")){
         throw new RuntimeException("Exception thrwn from postScannerOpen ");

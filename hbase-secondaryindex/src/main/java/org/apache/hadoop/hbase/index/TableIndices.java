@@ -77,6 +77,16 @@ public class TableIndices {
     }
     indices.add(iSpec);
   }
+  
+  /**
+   * @param iSpecs list of index specifications to be added to indices
+   * @throws IllegalArgumentException if duplicate indexes for same table
+   */
+  public void addIndexes(List<IndexSpecification> iSpecs) throws IllegalArgumentException {
+    for(IndexSpecification iSpec:iSpecs){
+      addIndex(iSpec);
+    }
+  }
 
   /**
    * @return IndexSpecification list

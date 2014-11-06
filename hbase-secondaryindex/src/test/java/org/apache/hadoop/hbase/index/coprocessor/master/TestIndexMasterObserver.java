@@ -58,6 +58,7 @@ import org.apache.hadoop.hbase.index.TestUtils;
 import org.apache.hadoop.hbase.index.client.IndexAdmin;
 import org.apache.hadoop.hbase.index.coprocessor.regionserver.IndexRegionObserver;
 import org.apache.hadoop.hbase.index.util.IndexUtils;
+import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.master.HMaster;
 import org.apache.hadoop.hbase.master.LoadBalancer;
@@ -82,7 +83,7 @@ public class TestIndexMasterObserver {
 
   private static HBaseTestingUtility UTIL = new HBaseTestingUtility();
 
-  private static HBaseAdmin admin;
+  private static IndexAdmin admin;
   @BeforeClass
   public static void setupBeforeClass() throws Exception {
     Configuration conf = UTIL.getConfiguration();
@@ -167,6 +168,26 @@ public class TestIndexMasterObserver {
 
     assertTrue("Index tables is not created.", admin.isTableAvailable(indexTableName));
   }
+  
+//  @Test
+//  public void testCreateAndDropIndexedTableContinuosly() throws Exception {
+//    String tableName = "testCreateAndDropIndexedTableContinuosly";
+//    HTableDescriptor iHtd =
+//        TestUtils.createIndexedHTableDescriptor(tableName, "cf",
+//          "index_name", "cf", "cq");
+//    char c = 'A';
+//    byte[][] split = new byte[20][];
+//    for (int i = 0; i < 20; i++) {
+//      byte[] b = { (byte) c };
+//      split[i] = b;
+//      c++;
+//    }
+//    for (int i = 0; i < 2; i++) {
+//      admin.createTable(iHtd, split);
+//      admin.disableTable(tableName);
+//      admin.deleteTable(tableName);
+//    }
+//  }
 
   @Test(timeout = 180000)
   public void testCreateIndexTableWhenExistedIndexTableDisabled() throws Exception {
@@ -544,7 +565,7 @@ public class TestIndexMasterObserver {
     HTableDescriptor htd = new HTableDescriptor(TableName.valueOf(tableName));
     htd.addFamily(new HColumnDescriptor(Bytes.toBytes("f1")));
     htd.addFamily(new HColumnDescriptor(Bytes.toBytes("f2")));
-    admin.createTable(htd);
+    admin.createTable(htd); 
     TableName indexTableName = TableName.valueOf(IndexUtils.getIndexTableName(tableName));
     admin.disableTable(tableName);
     HTableDescriptor ihtd =
@@ -651,7 +672,7 @@ public class TestIndexMasterObserver {
     admin.createTable(htd);
     HTableDescriptor tableDescriptor =
         admin.getTableDescriptor(Bytes.toBytes(IndexUtils.getIndexTableName(userTableName)));
-    assertEquals(DataBlockEncoding.PREFIX,
+    assertEquals(DataBlockEncoding.FAST_DIFF,
       tableDescriptor.getColumnFamilies()[0].getDataBlockEncoding());
   }
 
@@ -666,5 +687,131 @@ public class TestIndexMasterObserver {
     htd2.addFamily(new HColumnDescriptor("col1"));
     admin.createTable(htd2);
     assertFalse(admin.tableExists(IndexUtils.getIndexTableName(TableName.valueOf(userTableName))));
+  }
+  
+  @Test(timeout = 180000)
+  public void testIndexTableColumnDescriptor() throws Exception {
+    String userTableName = "testIndexTableColumnDescriptor";
+    HTableDescriptor htd = TestUtils.createIndexedHTableDescriptor(userTableName, "col1", "Index1", "col1", "ql");
+    admin.createTable(htd);
+    HTableDescriptor desc = admin.getTableDescriptor(TableName.valueOf(IndexUtils.getIndexTableName(userTableName)));
+    HColumnDescriptor hColumnDescriptor = desc.getColumnFamilies()[0];
+    assertEquals(IndexMasterObserver.DEFAULT_INDEX_COL_DESC, hColumnDescriptor);
+  }
+  
+  @Test(timeout = 180000)
+  public void testBlockEncodings() throws Exception {
+    String userTableName = "testBlockEncodings";
+    HTableDescriptor ihtd = new HTableDescriptor(TableName.valueOf(userTableName));
+    HColumnDescriptor hcd = new HColumnDescriptor("col1");
+
+    IndexSpecification iSpec = new IndexSpecification("Index1");
+
+    iSpec.addIndexColumn(hcd, "ql", ValueType.String, 10);
+    ihtd.addFamily(hcd);
+
+    admin.createTable(ihtd);
+    admin.addIndex(ihtd.getTableName(),iSpec);
+    ihtd = admin.getTableDescriptor(Bytes.toBytes(userTableName));
+    //HTable table = new HTable(conf, userTableName + "_idx");
+    HTableDescriptor indexTableDesc =
+        admin.getTableDescriptor(Bytes.toBytes(userTableName + "_idx"));
+    assertEquals(DataBlockEncoding.FAST_DIFF,
+      indexTableDesc.getColumnFamilies()[0].getDataBlockEncoding());
+    
+    // Test for DataBlockEncoding.NONE
+    admin.disableTable(Bytes.toBytes(userTableName));
+    HColumnDescriptor indexColDesc = indexTableDesc.getColumnFamilies()[0];
+    indexColDesc.setDataBlockEncoding(DataBlockEncoding.NONE);
+    ihtd.setValue(Constants.INDEX_COL_DESC_BYTES, indexColDesc.toByteArray());
+    admin.modifyTable(Bytes.toBytes(userTableName), ihtd);
+    admin.enableTable(Bytes.toBytes(userTableName));
+    indexTableDesc = admin.getTableDescriptor(Bytes.toBytes(userTableName + "_idx"));
+    assertEquals(DataBlockEncoding.NONE, indexTableDesc.getColumnFamilies()[0]
+        .getDataBlockEncoding());
+
+    // Test for DataBlockEncoding.PREFIX
+    admin.disableTable(Bytes.toBytes(userTableName));
+    indexColDesc = indexTableDesc.getColumnFamilies()[0];
+    indexColDesc.setDataBlockEncoding(DataBlockEncoding.PREFIX);
+    ihtd.setValue(Constants.INDEX_COL_DESC_BYTES, indexColDesc.toByteArray());
+    admin.modifyTable(Bytes.toBytes(userTableName), ihtd);
+    admin.enableTable(Bytes.toBytes(userTableName));
+    indexTableDesc = admin.getTableDescriptor(Bytes.toBytes(userTableName + "_idx"));
+    assertEquals(DataBlockEncoding.PREFIX, indexTableDesc.getColumnFamilies()[0]
+        .getDataBlockEncoding());
+
+    // Test for DataBlockEncoding.DIFF
+    admin.disableTable(Bytes.toBytes(userTableName));
+    indexColDesc = indexTableDesc.getColumnFamilies()[0];
+    indexColDesc.setDataBlockEncoding(DataBlockEncoding.DIFF);
+    ihtd.setValue(Constants.INDEX_COL_DESC_BYTES, indexColDesc.toByteArray());
+    admin.modifyTable(Bytes.toBytes(userTableName), ihtd);
+    admin.enableTable(Bytes.toBytes(userTableName));
+    indexTableDesc = admin.getTableDescriptor(Bytes.toBytes(userTableName + "_idx"));
+    assertEquals(DataBlockEncoding.DIFF, indexTableDesc.getColumnFamilies()[0]
+        .getDataBlockEncoding());
+
+    // Test for DataBlockEncoding.FAST_DIFF
+    admin.disableTable(Bytes.toBytes(userTableName));
+    indexColDesc = indexTableDesc.getColumnFamilies()[0];
+    indexColDesc.setDataBlockEncoding(DataBlockEncoding.FAST_DIFF);
+    ihtd.setValue(Constants.INDEX_COL_DESC_BYTES, indexColDesc.toByteArray());
+    admin.modifyTable(Bytes.toBytes(userTableName), ihtd);
+    admin.enableTable(Bytes.toBytes(userTableName));
+    indexTableDesc = admin.getTableDescriptor(Bytes.toBytes(userTableName + "_idx"));
+    assertEquals(DataBlockEncoding.FAST_DIFF, indexTableDesc.getColumnFamilies()[0]
+        .getDataBlockEncoding());
+    
+  }
+  
+  @Test(timeout = 180000)
+  public void testCompressionAlgorithms() throws Exception {
+    String userTableName = "testCompressionAlgorithms";
+    HTableDescriptor ihtd =
+        TestUtils.createIndexedHTableDescriptor(userTableName, "col1", "Index1", "col1", "ql");
+
+    admin.createTable(ihtd);
+    //HTable table = new HTable(conf, userTableName + "_idx");
+    HTableDescriptor indexTableDesc =
+        admin.getTableDescriptor(Bytes.toBytes(userTableName + "_idx"));
+    assertEquals(Compression.Algorithm.NONE,
+      indexTableDesc.getColumnFamilies()[0].getCompressionType());
+
+    // Test for Compression.Algorithm.GZ
+    admin.disableTable(Bytes.toBytes(userTableName));
+    HColumnDescriptor idxColDesc = indexTableDesc.getColumnFamilies()[0];
+    idxColDesc.setCompressionType(Compression.Algorithm.GZ);
+    ihtd.setValue(Constants.INDEX_COL_DESC_BYTES, idxColDesc.toByteArray());
+    admin.modifyTable(Bytes.toBytes(userTableName), ihtd);
+    admin.enableTable(Bytes.toBytes(userTableName));
+    indexTableDesc = admin.getTableDescriptor(Bytes.toBytes(userTableName + "_idx"));
+    assertEquals(Compression.Algorithm.GZ, indexTableDesc.getColumnFamilies()[0]
+        .getCompressionType());
+    
+    // Test for Compression.Algorithm.LZ4
+//    admin.disableTable(Bytes.toBytes(userTableName));
+//    idxColDesc = indexTableDesc.getColumnFamilies()[0];
+//    idxColDesc.setCompressionType(Compression.Algorithm.LZ4);
+//    ihtd.setValue(Constants.INDEX_COL_DESC_BYTES, idxColDesc.toByteArray());
+//    admin.modifyTable(Bytes.toBytes(userTableName), ihtd);
+//    admin.enableTable(Bytes.toBytes(userTableName));
+//    indexTableDesc = admin.getTableDescriptor(Bytes.toBytes(userTableName + "_idx"));
+//    assertEquals(Compression.Algorithm.LZ4, indexTableDesc.getColumnFamilies()[0]
+//        .getCompressionType());
+  }
+  
+  
+  @Test(timeout = 180000)
+  public void testTableCreationWhenPassedIndexCFNameIsDifferentNameThanDefaultIndexCFName() throws Exception {
+    String userTableName =
+        "testTableCreationWhenPassedIndexCFNameIsDifferentNameThanDefaultIndexCFName";
+    HTableDescriptor ihtd =
+        TestUtils.createIndexedHTableDescriptor(userTableName, "col1", "Index1", "col1", "ql");
+    ihtd.setValue(Constants.INDEX_COL_DESC_BYTES, new HColumnDescriptor("dummy").toByteArray());
+    try{
+      admin.createTable(ihtd);
+      fail("user table should not be created.");
+    } catch(Exception e){}
   }
 }

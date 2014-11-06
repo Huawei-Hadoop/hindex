@@ -40,6 +40,7 @@ import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
 import org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.index.Column;
 import org.apache.hadoop.hbase.index.ColumnQualifier;
 import org.apache.hadoop.hbase.index.ColumnQualifier.ValueType;
@@ -62,6 +63,7 @@ import org.apache.hadoop.hbase.master.handler.CreateTableHandler;
 import org.apache.hadoop.hbase.master.handler.DeleteTableHandler;
 import org.apache.hadoop.hbase.master.handler.DisableTableHandler;
 import org.apache.hadoop.hbase.master.handler.EnableTableHandler;
+import org.apache.hadoop.hbase.master.handler.ModifyTableHandler;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.zookeeper.ZKTable;
@@ -78,6 +80,9 @@ public class IndexMasterObserver extends BaseMasterObserver {
   private static final Log LOG = LogFactory.getLog(IndexMasterObserver.class.getName());
 
   IndexManager idxManager = IndexManager.getInstance();
+  
+  public final static HColumnDescriptor DEFAULT_INDEX_COL_DESC = new HColumnDescriptor(
+    Constants.IDX_COL_FAMILY).setBlocksize(8 * 1024).setDataBlockEncoding(DataBlockEncoding.FAST_DIFF);
 
   /*
    * (non-Javadoc)
@@ -111,9 +116,22 @@ public class IndexMasterObserver extends BaseMasterObserver {
       LOG.trace("Checking whether column families in "
           + "index specification are in actual table column familes.");
       for (IndexSpecification iSpec : indices) {
-        checkColumnsForValidityAndConsistency(desc, iSpec, indexColDetails);
+        IndexUtils.checkColumnsForValidityAndConsistency(desc, iSpec, indexColDetails);
       }
       LOG.trace("Column families in index specifications " + "are in actual table column familes.");
+      if (desc.getValue(Constants.INDEX_COL_DESC_BYTES) != null) {
+        byte[] indexColDescBytes = desc.getValue(Constants.INDEX_COL_DESC_BYTES);
+        try {
+          HColumnDescriptor idxColDesc = HColumnDescriptor.parseFrom(indexColDescBytes);
+          if (Bytes.compareTo(idxColDesc.getName(), Constants.IDX_COL_FAMILY) != 0) {
+            throw new DoNotRetryIOException(new IllegalArgumentException(
+                "Index Column family name passing through user table descriptor should be equal to "
+                    + Bytes.toString(Constants.IDX_COL_FAMILY)));
+          } 
+        } catch (DeserializationException e) {
+          new DoNotRetryIOException(e);
+        }
+      }
 
       boolean isTableExists =
           MetaReader.tableExists(master.getCatalogTracker(), desc.getTableName());
@@ -131,6 +149,25 @@ public class IndexMasterObserver extends BaseMasterObserver {
   }
 
   @Override
+  public void preModifyTableHandler(ObserverContext<MasterCoprocessorEnvironment> ctx,
+      TableName tableName, HTableDescriptor htd) throws IOException {
+    if (!IndexUtils.isCatalogOrSystemTable(tableName) && !IndexUtils.isIndexTable(tableName)) {
+      if (htd.getValue(Constants.INDEX_COL_DESC_BYTES) != null) {
+        byte[] indexColDescBytes = htd.getValue(Constants.INDEX_COL_DESC_BYTES);
+        try {
+          HColumnDescriptor idxColDesc = HColumnDescriptor.parseFrom(indexColDescBytes);
+          if (Bytes.compareTo(idxColDesc.getName(), Constants.IDX_COL_FAMILY) != 0) {
+            throw new DoNotRetryIOException(new IllegalArgumentException(
+                "Index Column family name passing through user table descriptor should be equal to "
+                    + Bytes.toString(Constants.IDX_COL_FAMILY)));
+          }
+        } catch (DeserializationException e) {
+          new DoNotRetryIOException(e);
+        }
+      }
+    }
+  }
+  @Override
   public void postModifyTableHandler(ObserverContext<MasterCoprocessorEnvironment> ctx,
       TableName tableName, HTableDescriptor htd) throws IOException {
     String table = tableName.getNameAsString();
@@ -138,79 +175,67 @@ public class IndexMasterObserver extends BaseMasterObserver {
     List<Pair<HRegionInfo, ServerName>> tableRegionsAndLocations = null;
     LOG.info("Entering postModifyTable for the table " + table);
     byte[] indexBytes = htd.getValue(Constants.INDEX_SPEC_KEY);
+    TableDescriptors tableDescriptors = master.getTableDescriptors();
+    Map<String, HTableDescriptor> allTableDesc = tableDescriptors.getAll();
+    String indexTableName = IndexUtils.getIndexTableName(table);
     if (indexBytes != null) {
-      TableDescriptors tableDescriptors = master.getTableDescriptors();
-      Map<String, HTableDescriptor> allTableDesc = tableDescriptors.getAll();
-      String indexTableName = IndexUtils.getIndexTableName(table);
+      TableIndices tableIndices = new TableIndices();
+      tableIndices.readFields(indexBytes);
+      List<IndexSpecification> indices = tableIndices.getIndices();
       if (allTableDesc.containsKey(indexTableName)) {
         // Do table modification
-        TableIndices tableIndices = new TableIndices();
-        tableIndices.readFields(indexBytes);
-        List<IndexSpecification> indices = tableIndices.getIndices();
         if (indices.isEmpty()) {
-          LOG.error("Empty indices are passed to modify the table " + table);
+          disableAndDeleteTable(master, TableName.valueOf(indexTableName));
           return;
         }
         IndexManager idxManager = IndexManager.getInstance();
         idxManager.removeIndices(table);
         idxManager.addIndexForTable(table, indices);
+        if(htd.getValue(Constants.INDEX_COL_DESC_BYTES)!=null) {
+          HColumnDescriptor columnDesc = null;
+          try {
+            columnDesc = HColumnDescriptor.parseFrom(htd.getValue(Constants.INDEX_COL_DESC_BYTES));
+          } catch (DeserializationException e) {
+            throw new DoNotRetryIOException(e);
+          }
+          HTableDescriptor indexTableDesc = allTableDesc.get(indexTableName);
+          if(!indexTableDesc.getColumnFamilies()[0].equals(columnDesc)) {
+            indexTableDesc.removeFamily(columnDesc.getName());
+            indexTableDesc.addFamily(columnDesc);
+            ModifyTableHandler mth = new ModifyTableHandler(indexTableDesc.getTableName(), indexTableDesc, master, master);
+            mth.prepare();
+            mth.process();
+          }
+        }
         LOG.info("Successfully updated the indexes for the table  " + table + " to " + indices);
       } else {
-        try {
-          tableRegionsAndLocations =
-              MetaReader.getTableRegionsAndLocations(master.getCatalogTracker(), tableName, true);
-        } catch (InterruptedException e) {
-          LOG.error("Exception while trying to create index table for the existing table " + table);
-          return;
-        }
-        if (tableRegionsAndLocations != null) {
-          HRegionInfo[] regionInfo = new HRegionInfo[tableRegionsAndLocations.size()];
-          for (int i = 0; i < tableRegionsAndLocations.size(); i++) {
-            regionInfo[i] = tableRegionsAndLocations.get(i).getFirst();
+        if (!indices.isEmpty()) {
+          idxManager.addIndexForTable(table, indices);
+          try {
+            tableRegionsAndLocations =
+                MetaReader.getTableRegionsAndLocations(master.getCatalogTracker(), tableName, true);
+          } catch (InterruptedException e) {
+            LOG.error("Exception while trying to create index table for the existing table "
+                + table);
+            return;
           }
+          if (tableRegionsAndLocations != null) {
+            HRegionInfo[] regionInfo = new HRegionInfo[tableRegionsAndLocations.size()];
+            for (int i = 0; i < tableRegionsAndLocations.size(); i++) {
+              regionInfo[i] = tableRegionsAndLocations.get(i).getFirst();
+            }
 
-          byte[][] splitKeys = getSplitKeys(regionInfo);
-          createSecondaryIndexTable(htd, splitKeys, master, true);
+            byte[][] splitKeys = getSplitKeys(regionInfo);
+            createSecondaryIndexTable(htd, splitKeys, master, true);
+          }
         }
+      }
+    } else {
+      if (allTableDesc.containsKey(indexTableName)) {
+        disableAndDeleteTable(master, TableName.valueOf(indexTableName));
       }
     }
     LOG.info("Exiting postModifyTable for the table " + table);
-  }
-
-  private void checkColumnsForValidityAndConsistency(HTableDescriptor desc,
-      IndexSpecification iSpec, Map<Column, Pair<ValueType, Integer>> indexColDetails)
-      throws IOException {
-    Set<ColumnQualifier> cqList = iSpec.getIndexColumns();
-    if (cqList.isEmpty()) {
-      String message =
-          " Index " + iSpec.getName()
-              + " doesn't contain any columns. Each index should contain atleast one column.";
-      LOG.error(message);
-      throw new DoNotRetryIOException(new IllegalArgumentException(message));
-    }
-    for (ColumnQualifier cq : cqList) {
-      if (null == desc.getFamily(cq.getColumnFamily())) {
-        String message =
-            "Column family " + cq.getColumnFamilyString() + " in index specification "
-                + iSpec.getName() + " not in Column families of table " + desc.getNameAsString()
-                + '.';
-        LOG.error(message);
-        throw new DoNotRetryIOException(new IllegalArgumentException(message));
-      }
-      Column column = new Column(cq.getColumnFamily(), cq.getQualifier(), cq.getValuePartition());
-      ValueType type = cq.getType();
-      int maxlength = cq.getMaxValueLength();
-      Pair<ValueType, Integer> colDetail = indexColDetails.get(column);
-      if (null != colDetail) {
-        if (!colDetail.getFirst().equals(type) || colDetail.getSecond() != maxlength) {
-          throw new DoNotRetryIOException(new IllegalArgumentException(
-              "ValueType/max value length of column " + column
-                  + " not consistent across the indices"));
-        }
-      } else {
-        indexColDetails.put(column, new Pair<ValueType, Integer>(type, maxlength));
-      }
-    }
   }
 
   private void checkEndsWithIndexSuffix(TableName tableName) throws IOException {
@@ -236,6 +261,9 @@ public class IndexMasterObserver extends BaseMasterObserver {
     LOG.info("Disabled table " + tableName + '.');
     LOG.info("Deleting table " + tableName + '.');
     new DeleteTableHandler(tableName, master, master).prepare().process();
+    if (master.getCoprocessorHost() != null) {
+      master.getCoprocessorHost().postDeleteTable(tableName);
+    }
     if (true == MetaReader.tableExists(master.getCatalogTracker(), tableName)) {
       throw new DoNotRetryIOException("Table " + tableName + " not  deleted.");
     }
@@ -285,21 +313,23 @@ public class IndexMasterObserver extends BaseMasterObserver {
     LOG.info("Creating secondary index table " + indexTableName + " for table "
         + desc.getNameAsString() + '.');
     HTableDescriptor indexTableDesc = new HTableDescriptor(indexTableName);
-    HColumnDescriptor columnDescriptor = new HColumnDescriptor(Constants.IDX_COL_FAMILY);
-    String dataBlockEncodingAlgo =
-        master.getConfiguration().get("index.data.block.encoding.algo", "NONE");
-    DataBlockEncoding[] values = DataBlockEncoding.values();
-
-    for (DataBlockEncoding dataBlockEncoding : values) {
-      if (dataBlockEncoding.toString().equals(dataBlockEncodingAlgo)) {
-        columnDescriptor.setDataBlockEncoding(dataBlockEncoding);
+    
+    if (desc.getValue(Constants.INDEX_COL_DESC_BYTES) == null) {
+      indexTableDesc.addFamily(DEFAULT_INDEX_COL_DESC);
+    } else {
+      byte[] indexColDescBytes = desc.getValue(Constants.INDEX_COL_DESC_BYTES);
+      try {
+        HColumnDescriptor idxColDesc = HColumnDescriptor.parseFrom(indexColDescBytes);
+        if (Bytes.compareTo(idxColDesc.getName(), Constants.IDX_COL_FAMILY) != 0) {
+          throw new DoNotRetryIOException(new IllegalArgumentException(
+              "Index Column family name passing through user table descriptor should be equal to "
+                  + Bytes.toString(Constants.IDX_COL_FAMILY)));
+        }
+        indexTableDesc.addFamily(idxColDesc);
+      } catch (DeserializationException e) {
+        new DoNotRetryIOException(e);
       }
     }
-
-    // TODO read this data from a config file??
-    columnDescriptor.setBlocksize(8 * 1024);// 8KB
-
-    indexTableDesc.addFamily(columnDescriptor);
     indexTableDesc.setValue(HTableDescriptor.SPLIT_POLICY, IndexRegionSplitPolicy.class.getName());
     LOG.info("Setting the split policy for the Index Table " + indexTableName + " as "
         + IndexRegionSplitPolicy.class.getName() + '.');
@@ -638,6 +668,9 @@ public class IndexMasterObserver extends BaseMasterObserver {
       DeleteTableHandler dth = new DeleteTableHandler(indexTableName, master, master);
       dth.prepare();
       dth.process();
+      if (master.getCoprocessorHost() != null) {
+        master.getCoprocessorHost().postDeleteTable(indexTableName);
+      }
     }
     LOG.info("Exiting from postDeleteTableHandler of table " + tableName + '.');
   }

@@ -21,12 +21,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -35,9 +37,14 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.index.ColumnQualifier;
 import org.apache.hadoop.hbase.index.ColumnQualifier.ValueType;
+import org.apache.hadoop.hbase.index.Column;
 import org.apache.hadoop.hbase.index.Constants;
 import org.apache.hadoop.hbase.index.IndexSpecification;
 import org.apache.hadoop.hbase.index.TableIndices;
@@ -45,6 +52,7 @@ import org.apache.hadoop.hbase.index.ValuePartition;
 import org.apache.hadoop.hbase.index.client.IndexAdmin;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 
 public class IndexUtils {
 
@@ -524,4 +532,57 @@ public class IndexUtils {
     }
   }
 
+  public static int countNumberOfRows(String tableName, Configuration conf) throws IOException {
+    HTable table = null;
+    try {
+      table = new HTable(conf, tableName);
+      Scan s = new Scan();
+      int i = 0;
+      ResultScanner scanner = table.getScanner(s);
+      Result[] result = scanner.next(1);
+      while (result != null && result.length > 0) {
+        i++;
+        result = scanner.next(1);
+      }
+      return i;
+    } finally {
+      if (table != null) table.close();
+    }
+  }
+  
+  public static void checkColumnsForValidityAndConsistency(HTableDescriptor desc,
+      IndexSpecification iSpec, Map<Column, Pair<ValueType, Integer>> indexColDetails)
+      throws IOException {
+    Set<ColumnQualifier> cqList = iSpec.getIndexColumns();
+    if (cqList.isEmpty()) {
+      String message =
+          " Index " + iSpec.getName()
+              + " doesn't contain any columns. Each index should contain atleast one column.";
+      LOG.error(message);
+      throw new DoNotRetryIOException(new IllegalArgumentException(message));
+    }
+    for (ColumnQualifier cq : cqList) {
+      if (null == desc.getFamily(cq.getColumnFamily())) {
+        String message =
+            "Column family " + cq.getColumnFamilyString() + " in index specification "
+                + iSpec.getName() + " not in Column families of table " + desc.getNameAsString()
+                + '.';
+        LOG.error(message);
+        throw new DoNotRetryIOException(new IllegalArgumentException(message));
+      }
+      Column column = new Column(cq.getColumnFamily(), cq.getQualifier(), cq.getValuePartition());
+      ValueType type = cq.getType();
+      int maxlength = cq.getMaxValueLength();
+      Pair<ValueType, Integer> colDetail = indexColDetails.get(column);
+      if (null != colDetail) {
+        if (!colDetail.getFirst().equals(type) || colDetail.getSecond() != maxlength) {
+          throw new DoNotRetryIOException(new IllegalArgumentException(
+              "ValueType/max value length of column " + column
+                  + " not consistent across the indices"));
+        }
+      } else {
+        indexColDetails.put(column, new Pair<ValueType, Integer>(type, maxlength));
+      }
+    }
+  }
 }

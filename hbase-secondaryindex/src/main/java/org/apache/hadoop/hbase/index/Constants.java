@@ -42,9 +42,21 @@ public class Constants {
   public static final int DEF_MAX_INDEX_NAME_LENGTH = 18;
 
   public static final String INDEX_SPEC = "INDEX_SPEC";
+  
+  public static final String BUILD_INDICES = "BUILD_INDICES";
+  
+  public static final String DROP_INDICES = "DROP_INDICES";
+  
+  public static final byte[] BUILD_INDICES_BYTES = Bytes.toBytes(BUILD_INDICES);
+  
+  public static final byte[] DROP_INDICES_BYTES = Bytes.toBytes(DROP_INDICES);
 
   public static final String INDEX_BALANCER_DELEGATOR_CLASS =
       "hbase.index.loadbalancer.delegator.class";
+  
+  public static final String INDEX_COL_DESC = "INDEX_COL_DESC";
+  
+  public static final byte[] INDEX_COL_DESC_BYTES = Bytes.toBytes(INDEX_COL_DESC);
 
   /**
    * Use this as a key to specify index details in {@link HTableDescriptor}

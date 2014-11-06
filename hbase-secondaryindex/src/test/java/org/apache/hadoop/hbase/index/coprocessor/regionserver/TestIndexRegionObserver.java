@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.hbase.index.coprocessor.regionserver;
 
+import static org.junit.Assert.assertFalse;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +37,6 @@ import org.apache.hadoop.hbase.LargeTests;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -82,7 +83,7 @@ public class TestIndexRegionObserver {
   private static HBaseTestingUtility UTIL = new HBaseTestingUtility();
   private static final int TTL_SECONDS = 2;
   private static final int TTL_MS = TTL_SECONDS * 1000;
-  private static HBaseAdmin admin = null;
+  private static IndexAdmin admin = null;
 
   @BeforeClass
   public static void setupBeforeClass() throws Exception {

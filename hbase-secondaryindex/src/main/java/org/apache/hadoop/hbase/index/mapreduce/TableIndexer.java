@@ -44,6 +44,8 @@ import org.apache.hadoop.util.GenericOptionsParser;
 public class TableIndexer {
 
   public static final String TABLE_NAME_TO_INDEX = "tablename.to.index";
+  public static final String NUM_VERSIONS = "num.versions";
+  public static final String SCAN_CACHING = "scan.caching";
   final static String BULK_OUTPUT_CONF_KEY = "import.bulk.output";
 
   private final static int DEFAULT_CACHING = 500;
@@ -62,26 +64,10 @@ public class TableIndexer {
     String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
     int caching = -1;
     int versions = -1;
-    if (otherArgs.length < 2) {
-      System.out
-          .println("Caching and/or Versions  not specified properly, using default values [default caching: "
-              + DEFAULT_CACHING + ", default versions: " + DEFAULT_VERSIONS + "]");
-      try {
-        caching = Integer.parseInt(otherArgs[0]);
-      } catch (NumberFormatException nfe) {
-        caching = DEFAULT_CACHING;
-      }
-      try {
-        versions = Integer.parseInt(otherArgs[1]);
-      } catch (NumberFormatException nfe) {
-        versions = DEFAULT_VERSIONS;
-      }
-    }
-
     String tableNameToIndex = conf.get(TABLE_NAME_TO_INDEX);
     if (tableNameToIndex == null) {
       System.out
-          .println("Wrong usage.  Usage is pass the table -Dtablename.to.index=table1 "
+          .println("Usage: TableIndexer -Dtablename.to.index=table1 "
               + "-Dtable.columns.index='IDX1=>cf1:[q1->datatype& length],[q2],"
               + "[q3];cf2:[q1->datatype&length],[q2->datatype&length],[q3->datatype& lenght]#IDX2=>cf1:q5,q5'");
       System.out.println("The format used here is: ");
@@ -96,9 +82,32 @@ public class TableIndexer {
               + "  The qualifier details are specified using '->' following qualifer name and the details are seperated by '&'");
       System.out.println("If the qualifier details are not specified default values are used.");
       System.out.println("# is used to seperate between two index details");
-      System.out.println("Pass the scanner caching and maxversions as arguments.");
+      System.out.println("Below two are optional parameters.");
+      System.out.println("-D" + SCAN_CACHING
+          + ": number of rows for caching that will be passed to scanners"
+          + " while scanning data table." + "If we not pass this parameter default value "
+          + DEFAULT_CACHING + " will be taken.");
+      System.out.println("-D" + NUM_VERSIONS
+        + ": to get up to the specified number of versions of each column while scanning data table."
+        + "If we not pass this parameter default value " + DEFAULT_VERSIONS + " will be taken.");
+      
       System.exit(-1);
     }
+    try {
+      caching = Integer.parseInt(conf.get(SCAN_CACHING));
+    } catch (NumberFormatException nfe) {
+      System.out.println("Number of rows for caching is not set or proper, using default value "
+          + DEFAULT_CACHING);
+      caching = DEFAULT_CACHING;
+    }
+    try {
+      caching = Integer.parseInt(conf.get(NUM_VERSIONS));
+    } catch (NumberFormatException nfe) {
+      System.out.println("Number of versions is not set or proper, using default value "
+          + DEFAULT_VERSIONS);
+      versions = DEFAULT_VERSIONS;
+    }
+
     IndexUtils.createIndexTable(tableNameToIndex, conf, cfs);
     createMapReduceJob(tableNameToIndex, conf, caching, versions);
   }
