@@ -120,6 +120,7 @@ public class ScanFilterEvaluator {
         LOG.error("There is an Exception in getting IndexExpression from Scan attribute!"
             + " The index won't be used", e);
       }
+      // TODO handle Arbitrary col index
     } else {
       Filter newFilter = doFiltersRestruct(filter);
       if (newFilter != null) {
@@ -232,7 +233,8 @@ public class ScanFilterEvaluator {
         ByteArrayBuilder indexNameBuilder =
             ByteArrayBuilder.allocate(IndexUtils.getMaxIndexNameLength());
         indexNameBuilder.put(indexName);
-        Scan scan = createScan(regionStartKey, indexName, fcvdList, startRow, stopRow);
+        Scan scan = createScan(regionStartKey, indexName, fcvdList, startRow, stopRow,
+            Bytes.equals(indexName, IndexSpecification.ARBITRARY_COL_IDX_NAME_BYTES));
         boolean isRange = isHavingRangeFilters(fcvdList);
         if (!hasRangeScanner && isRange) hasRangeScanner = isRange;
         createRegionScanner(indexRegion, userTableName, scanners, indexNameBuilder, scan, isRange,
@@ -263,7 +265,8 @@ public class ScanFilterEvaluator {
       ByteArrayBuilder indexNameBuilder =
           ByteArrayBuilder.allocate(IndexUtils.getMaxIndexNameLength());
       indexNameBuilder.put(indexName);
-      Scan scan = createScan(regionStartKey, indexName, filterColsDetails, startRow, stopRow);
+      Scan scan = createScan(regionStartKey, indexName, filterColsDetails, startRow, stopRow,
+          Bytes.equals(indexName, IndexSpecification.ARBITRARY_COL_IDX_NAME_BYTES));
       boolean isRange = isHavingRangeFilters(filterColsDetails);
       createRegionScanner(indexRegion, userTableName, scanners, indexNameBuilder, scan, isRange,
         ++scannerIndex);
@@ -307,20 +310,28 @@ public class ScanFilterEvaluator {
   }
 
   private Scan createScan(byte[] regionStartKey, byte[] indexName,
-      List<FilterColumnValueDetail> filterColsDetails, byte[] startRow, byte[] stopRow) {
+      List<FilterColumnValueDetail> filterColsDetails, byte[] startRow, byte[] stopRow,
+      boolean isArbitraryIndex) {
     Scan scan = new Scan();
     // common key is the regionStartKey + indexName
-    byte[] commonKey = createCommonKeyForIndex(regionStartKey, indexName);
-    scan.setStartRow(createStartOrStopKeyForIndexScan(filterColsDetails, commonKey, startRow, true));
+    byte[] commonKey = createCommonKeyForIndex(regionStartKey, indexName, isArbitraryIndex);
+    scan.setStartRow(createStartOrStopKeyForIndexScan(filterColsDetails, commonKey, startRow, true,
+        isArbitraryIndex));
     // Find the end key for the scan
-    scan.setStopRow(createStartOrStopKeyForIndexScan(filterColsDetails, commonKey, stopRow, false));
+    scan.setStopRow(createStartOrStopKeyForIndexScan(filterColsDetails, commonKey, stopRow, false,
+        isArbitraryIndex));
     return scan;
   }
 
-  private byte[] createCommonKeyForIndex(byte[] regionStartKey, byte[] indexName) {
+  private byte[] createCommonKeyForIndex(byte[] regionStartKey, byte[] indexName,
+      boolean isArbitraryIndex) {
     // Format for index table rowkey [Startkey for the index region] + [one 0 byte]+
     // [Index name] + [Padding for the max index name] + ....
-    int commonKeyLength = regionStartKey.length + 1 + IndexUtils.getMaxIndexNameLength();
+    // In case of arbitrary index we don't pad. Just adding two zero bytes as separator
+    // TODO do same way of separator or other cases too
+    int commonKeyLength = isArbitraryIndex ? regionStartKey.length + 1
+        + IndexSpecification.ARBITRARY_COL_IDX_NAME_BYTES.length + IndexUtils.SEPARATOR_LEN
+        : regionStartKey.length + 1 + IndexUtils.getMaxIndexNameLength();
     ByteArrayBuilder builder = ByteArrayBuilder.allocate(commonKeyLength);
     // Adding the startkey for the index region and single 0 Byte.
     builder.put(regionStartKey);
@@ -334,74 +345,42 @@ public class ScanFilterEvaluator {
   // When it comes here, only the last column in the colDetails will be a range.
   // Others will be exact value. EQUALS condition.
   private byte[] createStartOrStopKeyForIndexScan(List<FilterColumnValueDetail> colDetails,
-      byte[] commonKey, byte[] userTabRowKey, boolean isStartKey) {
+      byte[] commonKey, byte[] userTabRowKey, boolean isStartKey, boolean isArbitraryIndex) {
     int totalValueLen = 0;
-    for (FilterColumnValueDetail fcvd : colDetails) {
-      totalValueLen += fcvd.maxValueLength;
+    if (isArbitraryIndex) {
+      assert colDetails.size() == 1;
+      FilterColumnValueDetail fcvd = colDetails.get(0);
+      // format <common part> + 
+      // <family name> + <separator 2 bytes> + <qualifier name> + <separator 2 bytes> + <value> +
+      // <separator 2 bytes> + <user table rk>
+      totalValueLen = fcvd.cf.length + IndexUtils.SEPARATOR_LEN + fcvd.qualifier.length
+          + IndexUtils.SEPARATOR_LEN + fcvd.value.length + IndexUtils.SEPARATOR_LEN;
+    } else {
+      for (FilterColumnValueDetail fcvd : colDetails) {
+        totalValueLen += fcvd.maxValueLength;
+      }
     }
     int userTabRowKeyLen = userTabRowKey == null ? 0 : userTabRowKey.length;
     ByteArrayBuilder builder =
         ByteArrayBuilder.allocate(commonKey.length + totalValueLen + userTabRowKeyLen);
     builder.put(commonKey);
-    for (int i = 0; i < colDetails.size(); i++) {
-      FilterColumnValueDetail fcvd = colDetails.get(i);
-      if (i == colDetails.size() - 1) {
-        // This is the last column in the colDetails. Here the range check can come
-        if (isStartKey) {
-          if (fcvd.compareOp == null) {
-            // This can happen when the condition is a range condition and only upper bound is
-            // specified. ie. c1<100
-            // Now the column value can be specified as 0 bytes. Just we need to advance the byte[]
-            assert fcvd instanceof FilterColumnValueRange;
-            assert fcvd.value == null;
-            builder.position(builder.position() + fcvd.maxValueLength);
-          } else if (fcvd.compareOp.equals(CompareOp.EQUAL)
-              || fcvd.compareOp.equals(CompareOp.GREATER_OR_EQUAL)) {
-            copyColumnValueToKey(builder, fcvd.value, fcvd.maxValueLength, fcvd.valueType);
-          } else if (fcvd.compareOp.equals(CompareOp.GREATER)) {
-            // We can go with the value + 1
-            // For eg : if type is int and value is 45, make startkey considering value as 46
-            // If type is String and value is 'ad' make startkey considering value as 'ae'
-
-            copyColumnValueToKey(builder, fcvd.value, fcvd.maxValueLength, fcvd.valueType);
-            IndexUtils.incrementValue(builder.array(), false);
-          }
+    if (isArbitraryIndex) {
+      FilterColumnValueDetail fcvd = colDetails.get(0);
+      builder.put(fcvd.cf);
+      builder.position(builder.position() + IndexUtils.SEPARATOR_LEN); // separator part
+      builder.put(fcvd.qualifier);
+      builder.position(builder.position() + IndexUtils.SEPARATOR_LEN); // separator part
+      putColValueForLastCol(isStartKey, builder, fcvd);
+      builder.position(builder.position() + IndexUtils.SEPARATOR_LEN); // separator part
+    } else {
+      for (int i = 0; i < colDetails.size(); i++) {
+        FilterColumnValueDetail fcvd = colDetails.get(i);
+        if (i == colDetails.size() - 1) {
+          putColValueForLastCol(isStartKey, builder, fcvd);
         } else {
-          CompareOp op = fcvd.compareOp;
-          byte[] value = fcvd.value;
-          if (fcvd instanceof FilterColumnValueRange) {
-            op = ((FilterColumnValueRange) fcvd).getUpperBoundCompareOp();
-            value = ((FilterColumnValueRange) fcvd).getUpperBoundValue();
-          }
-          if (op == null) {
-            // This can happen when the condition is a range condition and only lower bound is
-            // specified. ie. c1>=10
-            assert fcvd instanceof FilterColumnValueRange;
-            assert value == null;
-            // Here the stop row is already partially built. As there is no upper bound all the
-            // possibles values for that column we need to consider. Well the max value for a
-            // column with maxValueLength=10 will a byte array of 10 bytes with all bytes as FF.
-            // But we can put this FF bytes into the stop row because the stop row will not be
-            // considered by the scanner. So we need to increment this by 1.
-            // We can increment the byte[] created until now by 1.
-            byte[] stopRowTillNow = builder.array(0, builder.position());
-            stopRowTillNow = IndexUtils.incrementValue(stopRowTillNow, true);
-            // Now we need to copy back this incremented value to the builder.
-            builder.position(0);
-            builder.put(stopRowTillNow);
-            // Now just advance the builder pos by fcvd.maxValueLength as we need all 0 bytes
-            builder.position(builder.position() + fcvd.maxValueLength);
-          } else if (op.equals(CompareOp.EQUAL) || op.equals(CompareOp.LESS_OR_EQUAL)) {
-            copyColumnValueToKey(builder, value, fcvd.maxValueLength, fcvd.valueType);
-            IndexUtils.incrementValue(builder.array(), false);
-
-          } else if (op.equals(CompareOp.LESS)) {
-            copyColumnValueToKey(builder, value, fcvd.maxValueLength, fcvd.valueType);
-          }
+          // For all other columns other than the last column the condition must be EQUALS
+          copyColumnValueToKey(builder, fcvd.value, fcvd.maxValueLength, fcvd.valueType);
         }
-      } else {
-        // For all other columns other than the last column the condition must be EQUALS
-        copyColumnValueToKey(builder, fcvd.value, fcvd.maxValueLength, fcvd.valueType);
       }
     }
     if (userTabRowKeyLen > 0) {
@@ -411,12 +390,76 @@ public class ScanFilterEvaluator {
     return builder.array();
   }
 
+  private void putColValueForLastCol(boolean isStartKey, ByteArrayBuilder builder,
+      FilterColumnValueDetail fcvd) {
+    // This is the last column in the colDetails. Here the range check can come
+    if (isStartKey) {
+      if (fcvd.compareOp == null) {
+        // This can happen when the condition is a range condition and only upper bound is
+        // specified. ie. c1<100
+        // Now the column value can be specified as 0 bytes. Just we need to advance the
+        // byte[]
+        assert fcvd instanceof FilterColumnValueRange;
+        assert fcvd.value == null;
+        if (fcvd.maxValueLength > 0) {
+          builder.position(builder.position() + fcvd.maxValueLength);
+        }
+      } else if (fcvd.compareOp.equals(CompareOp.EQUAL)
+          || fcvd.compareOp.equals(CompareOp.GREATER_OR_EQUAL)) {
+        copyColumnValueToKey(builder, fcvd.value, fcvd.maxValueLength, fcvd.valueType);
+      } else if (fcvd.compareOp.equals(CompareOp.GREATER)) {
+        // We can go with the value + 1
+        // For eg : if type is int and value is 45, make startkey considering value as 46
+        // If type is String and value is 'ad' make startkey considering value as 'ae'
+
+        copyColumnValueToKey(builder, fcvd.value, fcvd.maxValueLength, fcvd.valueType);
+        IndexUtils.incrementValue(builder.array(), false);
+      }
+    } else {
+      CompareOp op = fcvd.compareOp;
+      byte[] value = fcvd.value;
+      if (fcvd instanceof FilterColumnValueRange) {
+        op = ((FilterColumnValueRange) fcvd).getUpperBoundCompareOp();
+        value = ((FilterColumnValueRange) fcvd).getUpperBoundValue();
+      }
+      if (op == null) {
+        // This can happen when the condition is a range condition and only lower bound is
+        // specified. ie. c1>=10
+        assert fcvd instanceof FilterColumnValueRange;
+        assert value == null;
+        // Here the stop row is already partially built. As there is no upper bound all the
+        // possibles values for that column we need to consider. Well the max value for a
+        // column with maxValueLength=10 will a byte array of 10 bytes with all bytes as FF.
+        // But we can put this FF bytes into the stop row because the stop row will not be
+        // considered by the scanner. So we need to increment this by 1.
+        // We can increment the byte[] created until now by 1.
+        byte[] stopRowTillNow = builder.array(0, builder.position());
+        stopRowTillNow = IndexUtils.incrementValue(stopRowTillNow, true);
+        // Now we need to copy back this incremented value to the builder.
+        builder.position(0);
+        builder.put(stopRowTillNow);
+        if (fcvd.maxValueLength > 0) {
+          // Now just advance the builder pos by fcvd.maxValueLength as we need all 0 bytes
+          builder.position(builder.position() + fcvd.maxValueLength);
+        }
+      } else if (op.equals(CompareOp.EQUAL) || op.equals(CompareOp.LESS_OR_EQUAL)) {
+        copyColumnValueToKey(builder, value, fcvd.maxValueLength, fcvd.valueType);
+        IndexUtils.incrementValue(builder.array(), false);
+
+      } else if (op.equals(CompareOp.LESS)) {
+        copyColumnValueToKey(builder, value, fcvd.maxValueLength, fcvd.valueType);
+      }
+    }
+  }
+
   private void copyColumnValueToKey(ByteArrayBuilder builder, byte[] colValue, int maxValueLength,
       ValueType valueType) {
     colValue = IndexUtils.changeValueAccToDataType(colValue, valueType);
     builder.put(colValue);
-    int paddingLength = maxValueLength - colValue.length;
-    builder.position(builder.position() + paddingLength);
+    if (maxValueLength > 0) {
+      int paddingLength = maxValueLength - colValue.length;
+      builder.position(builder.position() + paddingLength);
+    }
   }
 
   // This method will do the reorder and restructuring of the filters so as the finding of
@@ -477,6 +520,7 @@ public class ScanFilterEvaluator {
       // Check for the availability of index
       return selectBestFitAndPossibleIndicesForSCVF(indices, (SingleColumnValueFilter) filter);
     } else if (filter instanceof SingleColumnRangeFilter) {
+      // TODO handle the case of Arbitrary column
       return selectBestFitAndPossibleIndicesForSCRF(indices, (SingleColumnRangeFilter) filter);
     }
     return new NoIndexFilterNode();
@@ -599,24 +643,31 @@ public class ScanFilterEvaluator {
     for (Entry<List<Column>, IndexSpecification> entry : colsVsIndex.entrySet()) {
       List<Column> cols = entry.getKey();
       int colsSize = cols.size();
-      IndexSpecification index = entry.getValue();
-      // The FilterColumnValueDetail for cols need to be in the same order as that of cols
-      // in the index. This order will be important for creating the start/stop keys for
-      // index scan.
       List<FilterColumnValueDetail> fcvds = new ArrayList<FilterColumnValueDetail>(colsSize);
-      int i = 0;
-      for (ColumnQualifier cq : index.getIndexColumns()) {
-        FilterColumnValueDetail fcvd =
-            leafNodes.get(
-              new Column(cq.getColumnFamily(), cq.getQualifier(), cq.getValuePartition()))
-                .getFilterColumnValueDetail();
+      IndexSpecification index = entry.getValue();
+      if(index.getName().equals(IndexSpecification.ARBITRARY_COL_IDX_NAME)){
+        assert colsSize == 1;
+        Column col = cols.get(0);
+        FilterColumnValueDetail fcvd = leafNodes.get(col).getFilterColumnValueDetail();
         assert fcvd != null;
         fcvds.add(fcvd);
-        i++;
-        if (i == colsSize) {
-          // The selected index might be on more cols than those we are interested in now.
-          // All those will be towards the end.
-          break;
+      } else {
+        // The FilterColumnValueDetail for cols need to be in the same order as that of cols
+        // in the index. This order will be important for creating the start/stop keys for
+        // index scan.
+        int i = 0;
+        for (ColumnQualifier cq : index.getIndexColumns()) {
+          FilterColumnValueDetail fcvd = leafNodes.get(
+              new Column(cq.getColumnFamily(), cq.getQualifier(), cq.getValuePartition()))
+              .getFilterColumnValueDetail();
+          assert fcvd != null;
+          fcvds.add(fcvd);
+          i++;
+          if (i == colsSize) {
+            // The selected index might be on more cols than those we are interested in now.
+            // All those will be towards the end.
+            break;
+          }
         }
       }
       LOG.info("Index using for the columns " + cols + " : " + index);
@@ -822,6 +873,19 @@ public class ScanFilterEvaluator {
   // in the passed cols list
   private boolean isIndexSuitable(IndexSpecification index, List<Column> cols,
       Map<Column, LeafFilterNode> leafNodes) {
+    // When it is Arbitrary column index we can have index per each one of the column only.
+    // When cols size is more than 1 it is not sutable
+    if (index.getName().equals(IndexSpecification.ARBITRARY_COL_IDX_NAME)) {
+      if (cols.size() > 1) {
+        return false;
+      }
+      Column c = cols.get(0);
+      for (ColumnQualifier cq : index.getIndexColumns()) {
+        if (Bytes.equals(cq.getColumnFamily(), c.getFamily())) {
+          return true;
+        }
+      }
+    }
     int matchedCols = 0;
     for (ColumnQualifier cq : index.getIndexColumns()) {
       Column column = new Column(cq.getColumnFamily(), cq.getQualifier(), cq.getValuePartition());
@@ -1063,6 +1127,29 @@ public class ScanFilterEvaluator {
 
   private FilterNode selectBestFitIndexForColumn(List<IndexSpecification> indices,
       FilterColumnValueDetail detail) {
+    // bypass the case of arbitrary column index
+    if (indices.size() == 1
+        && indices.get(0).getName().equals(IndexSpecification.ARBITRARY_COL_IDX_NAME)) {
+      IndexSpecification index = indices.get(0); 
+      for (ColumnQualifier cq : index.getIndexColumns()) {
+        if (Bytes.equals(cq.getColumnFamily(), detail.getColumn().getFamily())) {
+          detail.valueType = ValueType.String;
+          IndexSpecification indexDup = index.deepCopy();
+          // Just keep the single cf of this codition into this loop. Later we have checks to make
+          // sure all columns in index is part of conditions. Doing below makes that coding easy and
+          // no change to handle arbitrary index case
+          Iterator<ColumnQualifier> itr = indexDup.getIndexColumns().iterator();
+          while(itr.hasNext()){
+            ColumnQualifier next = itr.next();
+            if (!(Bytes.equals(next.getColumnFamily(), detail.getColumn().getFamily()))) {
+              itr.remove();
+            }
+          }
+          return new IndexFilterNode(indexDup, null, null, detail);
+        }
+      }
+      return new NoIndexFilterNode();
+    }
     FilterNode filterNode =
         this.colFilterNodeCache.get(new ColumnWithValue(detail.getColumn(), detail.getValue()));
     if (filterNode != null) {
@@ -1100,9 +1187,9 @@ public class ScanFilterEvaluator {
       // This index might be useful at a topper level....
       // I will explain in detail
       // When the filter from customer is coming this way as shown below
-      // &
+      //    &
       // ___|___
-      // | |
+      // |      |
       // c1=10 c2=5
       // Suppose we have an index on c2&c1 only on the table, when we check for c1=10 node
       // we will not find any index for that as index is not having c1 as the 1st column.

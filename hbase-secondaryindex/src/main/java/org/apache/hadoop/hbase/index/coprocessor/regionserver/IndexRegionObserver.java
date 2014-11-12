@@ -211,20 +211,28 @@ public class IndexRegionObserver extends BaseRegionObserver {
     IndexEdits indexEdits = threadLocal.get();
     if (mutation instanceof Put) {
       for (IndexSpecification index : indices) {
-        // Handle each of the index
-        Mutation indexPut = IndexUtils.prepareIndexPut((Put) mutation, index, indexRegion);
-        if (null != indexPut) {
-          // This mutation can be null when the user table mutation is not
-          // containing all of the indexed col value.
-          indexEdits.add(indexPut);
+        if (IndexSpecification.ARBITRARY_COL_IDX_NAME.equals(index.getName())) {
+          // TODO some code duplication we can avoid
+          List<Mutation> indexPuts = IndexUtils.preparePutsForArbitraryIndex((Put) mutation, index,
+              indexRegion.getStartKey());
+          for (Mutation m : indexPuts) {
+            indexEdits.add(m);
+          }
+        } else {
+          // Handle each of the index
+          Mutation indexPut = IndexUtils.prepareIndexPut((Put) mutation, index, indexRegion);
+          if (null != indexPut) {
+            // This mutation can be null when the user table mutation is not
+            // containing all of the indexed col value.
+            indexEdits.add(indexPut);
+          }
         }
       }
     } else if (mutation instanceof Delete) {
+      // TODO handle ARBITRARY_COL_IDX_NAME
       Collection<? extends Mutation> indexDeletes =
           prepareIndexDeletes((Delete) mutation, userRegion, indices, indexRegion);
       indexEdits.addAll(indexDeletes);
-    } else {
-      // TODO : Log or throw exception
     }
   }
 

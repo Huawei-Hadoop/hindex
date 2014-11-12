@@ -38,6 +38,7 @@ import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -59,6 +60,7 @@ public class IndexUtils {
   private static final Log LOG = LogFactory.getLog(IndexUtils.class);
 
   public static final String TABLE_INPUT_COLS = "table.columns.index";
+  public static final int SEPARATOR_LEN = 2;
 
   /**
    * Utility method to get the name of the index table when given the name of the actual table.
@@ -104,6 +106,10 @@ public class IndexUtils {
   public static byte[] isLegalIndexName(final byte[] indexName) {
     if (indexName == null || indexName.length <= 0) {
       throw new IllegalArgumentException("Name is null or empty");
+    }
+    if (Bytes.equals(IndexSpecification.ARBITRARY_COL_IDX_NAME_BYTES, indexName)) {
+      throw new IllegalArgumentException("Index name " + IndexSpecification.ARBITRARY_COL_IDX_NAME
+          + " is reserved index name");
     }
     if (indexName[0] == '.' || indexName[0] == '-') {
       throw new IllegalArgumentException("Illegal first character <" + indexName[0]
@@ -584,5 +590,62 @@ public class IndexUtils {
         indexColDetails.put(column, new Pair<ValueType, Integer>(type, maxlength));
       }
     }
+  }
+
+  public static List<Mutation> preparePutsForArbitraryIndex(Put userPut, IndexSpecification index,
+      byte[] indexRegionStartKey) {
+    List<Mutation> idxPuts = new ArrayList<Mutation>();
+    byte[] primaryRowKey = userPut.getRow();
+    for(ColumnQualifier colQual : index.getIndexColumns()){
+      List<Cell> cells = userPut.getFamilyCellMap().get(colQual.getColumnFamily());
+      // format <startkey for the index region> + <1 byte> + <index name> + <separator 2 bytes>
+      // <family name> + <separator 2 bytes> + <qualifier name> + <separator 2 bytes> + <value> +
+      // <separator 2 bytes> + <user table rk>
+      int indexRkCommonLen = indexRegionStartKey.length + 1
+          + IndexSpecification.ARBITRARY_COL_IDX_NAME_BYTES.length + SEPARATOR_LEN
+          + colQual.getColumnFamily().length + SEPARATOR_LEN;
+      // Add one index entry per each of the col qualifier
+      for (Cell cell : cells) {
+        // TODO remove the need for padding
+        int qLen = cell.getQualifierLength();
+        int vLen = cell.getValueLength();
+        int indexRkLen = indexRkCommonLen + qLen + SEPARATOR_LEN + vLen + SEPARATOR_LEN
+            + primaryRowKey.length;
+        ByteArrayBuilder row = ByteArrayBuilder.allocate(indexRkLen);
+        // STEP 1 : Adding the startkey for the index region and single empty Byte.
+        row.put(indexRegionStartKey);
+        row.position(row.position() + 1);
+        // STEP 2 Add index name and separator
+        row.put(IndexSpecification.ARBITRARY_COL_IDX_NAME_BYTES);
+        row.position(row.position() + SEPARATOR_LEN);
+        // STEP 3 Add CF name and separator
+        row.put(colQual.getColumnFamily());
+        row.position(row.position() + SEPARATOR_LEN);
+        // STEP 4 Add Qualifier name and separator
+        row.put(cell.getQualifierArray(), cell.getQualifierOffset(), qLen);
+        row.position(row.position() + SEPARATOR_LEN);
+        // STEP 5 Add value and separator
+        row.put(cell.getValueArray(), cell.getValueOffset(), vLen);
+        row.position(row.position() + SEPARATOR_LEN);
+        // STEP 6 Adding the user table rowkey.
+        // Remember the offset of rowkey and store it as value
+        short rowKeyOffset = row.position();
+        row.put(primaryRowKey);
+
+        // Creating the value to be put into the index column
+        // Last portion of index row key = [region start key length (2 bytes), offset of primary
+        // rowkey in index rowkey (2 bytes)]
+        ByteArrayBuilder indexColVal = ByteArrayBuilder.allocate(4);
+        indexColVal.put(Bytes.toBytes((short) indexRegionStartKey.length));
+        indexColVal.put(Bytes.toBytes(rowKeyOffset));
+
+        Put idxPut = new Put(row.array());
+        idxPut.add(Constants.IDX_COL_FAMILY, Constants.IDX_COL_QUAL, cell.getTimestamp(),
+            indexColVal.array());
+        idxPut.setDurability(Durability.SKIP_WAL);
+        idxPuts.add(idxPut);
+      }
+    }
+    return idxPuts;
   }
 }

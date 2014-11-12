@@ -46,11 +46,14 @@ import org.mortbay.log.Log;
 
 public class IndexSpecification implements WritableComparable<IndexSpecification> {
 
+  public static final String ARBITRARY_COL_IDX_NAME = "ARB_COL_IDX";
+  public static final byte[] ARBITRARY_COL_IDX_NAME_BYTES = Bytes.toBytes(ARBITRARY_COL_IDX_NAME);
+  public static final String ARBITRARY_COL_NAME = "ARB_COL";
+  public static final byte[] ARBITRARY_COL_NAME_BYTES = Bytes.toBytes(ARBITRARY_COL_NAME);
+
   private byte[] name;
 
   private Set<ColumnQualifier> indexColumns = new LinkedHashSet<ColumnQualifier>(1);
-
-  private ColumnQualifier lastColumn = null;
 
   private int totalValueLength = 0;
 
@@ -189,7 +192,6 @@ public class IndexSpecification implements WritableComparable<IndexSpecification
 
   private void internalAdd(ColumnQualifier cq) {
     indexColumns.add(cq);
-    lastColumn = cq;
     totalValueLength += cq.getMaxValueLength();
   }
 
@@ -207,12 +209,16 @@ public class IndexSpecification implements WritableComparable<IndexSpecification
    * @throws IllegalArgumentException If column family name starts with '.',contains control
    *           characters or colons
    */
-  private void isValidFamilyAndQualifier(HColumnDescriptor cf, String qualifier) {
-    if (null == cf || null == qualifier) {
-      throw new IllegalArgumentException("Column family/qualifier should not be null.");
+  private static void isValidFamilyAndQualifier(HColumnDescriptor cf, String qualifier) {
+    isValidFamily(cf);
+    if (null == qualifier || StringUtils.isBlank(qualifier)) {
+      throw new IllegalArgumentException("Column qualifier should not be null/empty.");
     }
-    if (StringUtils.isBlank(cf.getNameAsString()) || StringUtils.isBlank(qualifier)) {
-      throw new IllegalArgumentException("Column family/qualifier should not be blank.");
+  }
+
+  private static void isValidFamily(HColumnDescriptor cf) {
+    if (null == cf || StringUtils.isBlank(cf.getNameAsString())) {
+      throw new IllegalArgumentException("Column family should not be null/empty.");
     }
   }
 
@@ -232,15 +238,6 @@ public class IndexSpecification implements WritableComparable<IndexSpecification
    */
   public void readFields(DataInput in) throws IOException {
     this.name = Bytes.readByteArray(in);
-    try {
-      IndexUtils.isLegalIndexName(this.name);
-    } catch (IllegalArgumentException e) {
-      String msg =
-          "Received unexpected data while parsing the column qualifiers :"
-              + Bytes.toString(this.name) + ".";
-      Log.warn(msg + " Could be an non-indexed table.");
-      throw new EOFException(msg);
-    }
     int indexColsSize = in.readInt();
     indexColumns.clear();
     for (int i = 0; i < indexColsSize; i++) {
@@ -296,10 +293,6 @@ public class IndexSpecification implements WritableComparable<IndexSpecification
     return Bytes.hashCode(this.name);
   }
 
-  public ColumnQualifier getLastColumn() {
-    return this.lastColumn;
-  }
-
   public boolean contains(byte[] family) {
     for (ColumnQualifier qual : indexColumns) {
       if (Bytes.equals(family, qual.getColumnFamily())) {
@@ -342,4 +335,38 @@ public class IndexSpecification implements WritableComparable<IndexSpecification
     return this.maxVersions;
   }
 
+  public IndexSpecification deepCopy() {
+    IndexSpecification dup = new IndexSpecification();
+    dup.name = this.name;
+    dup.totalValueLength = this.totalValueLength;
+    dup.ttl = this.ttl;
+    dup.maxVersions = this.maxVersions;
+    dup.indexColumns = new LinkedHashSet<ColumnQualifier>(this.indexColumns.size());
+    dup.indexColumns.addAll(this.indexColumns);
+    return dup;
+  }
+
+  /**
+   * Normal created indexes needed full column name to be specified ie. cf:q <br>
+   * HBase allows to write using arbitrary qualifier names. This index helps to index these
+   * arbitrary columns. HIndex will index each of the qualifier in the specified cfs with entry for
+   * each one of the qulifier into index table. There can be only one such arbitrary index on a
+   * table nd need to pass all the cfs to be indexed, to this call. When there is an arbitrary index
+   * on a table, we dont allow any other index to be specified on this table.
+   * @param cols
+   * @return
+   */
+  public static IndexSpecification createArbitraryColumnIndex(HColumnDescriptor... cols) {
+    IndexSpecification idxSpec = new IndexSpecification();
+    idxSpec.name = ARBITRARY_COL_IDX_NAME_BYTES;
+    for (HColumnDescriptor col : cols) {
+      isValidFamily(col);
+      idxSpec.formMinTTL(col);
+      idxSpec.formMaxVersions(col);
+      ColumnQualifier cq = new ColumnQualifier(col.getNameAsString(), ARBITRARY_COL_NAME,
+          ValueType.String, -1);
+      idxSpec.indexColumns.add(cq);
+    }
+    return idxSpec;
+  }
 }

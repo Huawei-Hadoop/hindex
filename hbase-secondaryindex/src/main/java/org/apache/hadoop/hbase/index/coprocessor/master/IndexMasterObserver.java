@@ -115,7 +115,14 @@ public class IndexMasterObserver extends BaseMasterObserver {
       }
       LOG.trace("Checking whether column families in "
           + "index specification are in actual table column familes.");
+      // TODO when there is an ARBITRARY_COL_IDX_NAME on table, then no other index we
+      // allow as of now. Add in future (?)
       for (IndexSpecification iSpec : indices) {
+        if (IndexSpecification.ARBITRARY_COL_IDX_NAME.equals(iSpec.getName()) && indices.size() > 1) {
+          String msg = "Not allowing any other index on table when "
+              + IndexSpecification.ARBITRARY_COL_IDX_NAME + " is present on table";
+          throw new DoNotRetryIOException(msg);
+        }
         IndexUtils.checkColumnsForValidityAndConsistency(desc, iSpec, indexColDetails);
       }
       LOG.trace("Column families in index specifications " + "are in actual table column familes.");
@@ -151,6 +158,8 @@ public class IndexMasterObserver extends BaseMasterObserver {
   @Override
   public void preModifyTableHandler(ObserverContext<MasterCoprocessorEnvironment> ctx,
       TableName tableName, HTableDescriptor htd) throws IOException {
+    // TODO check for ARBITRARY_COL_IDX_NAME. There are some inconsistency with validation here and
+	 // in preCreateTable. Correct it also.
     if (!IndexUtils.isCatalogOrSystemTable(tableName) && !IndexUtils.isIndexTable(tableName)) {
       if (htd.getValue(Constants.INDEX_COL_DESC_BYTES) != null) {
         byte[] indexColDescBytes = htd.getValue(Constants.INDEX_COL_DESC_BYTES);
