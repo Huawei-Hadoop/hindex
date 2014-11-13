@@ -66,6 +66,7 @@ import org.apache.hadoop.hbase.io.Reference;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegion.Operation;
+import org.apache.hadoop.hbase.regionserver.IndexSplitTransaction;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.regionserver.HRegionServer;
@@ -824,7 +825,7 @@ public class IndexRegionObserver extends BaseRegionObserver {
     }
     if (indexManager.getIndicesForTable(userTableName) != null) {
       HRegion indexRegion = null;
-      SplitTransaction st = null;
+      IndexSplitTransaction st = null;
       try {
         indexRegion = getIndexRegion(rs, region.getStartKey(), indexTableName);
         if (null != indexRegion) {
@@ -835,7 +836,7 @@ public class IndexRegionObserver extends BaseRegionObserver {
             LOG.info("Forcing split for the index table " + indexTableName + " with split key "
                 + Bytes.toString(splitKey));
           }
-          st = new SplitTransaction(indexRegion, splitKey);
+          st = new IndexSplitTransaction(indexRegion, splitKey);
           if (!st.prepare()) {
             LOG.error("Prepare for the index table " + indexTableName
                 + " failed. So returning null. ");
@@ -908,7 +909,7 @@ public class IndexRegionObserver extends BaseRegionObserver {
     }
     LOG.trace("Entering postSplit for the table " + userTableName + " for the region "
         + region.getRegionInfo());
-    SplitTransaction splitTransaction = null;
+    IndexSplitTransaction splitTransaction = null;
     if (region.getTableDesc().getValue(Constants.INDEX_SPEC_KEY) != null) {
       try {
         SplitInfo splitInfo = splitThreadLocal.get();
@@ -953,7 +954,7 @@ public class IndexRegionObserver extends BaseRegionObserver {
         + region.getRegionInfo());
     SplitInfo splitInfo = splitThreadLocal.get();
     if (splitInfo == null) return;
-    SplitTransaction splitTransaction = splitInfo.getSplitTransaction();
+    IndexSplitTransaction splitTransaction = splitInfo.getSplitTransaction();
     try {
       if (splitTransaction != null) {
         splitTransaction.rollback(rs, rs);
@@ -1156,11 +1157,11 @@ public class IndexRegionObserver extends BaseRegionObserver {
    */
   public static class SplitInfo {
     private PairOfSameType<HRegion> daughterRegions;
-    private SplitTransaction st;
+    private IndexSplitTransaction st;
     private HRegion parent;
 
     public SplitInfo(final HRegion parent, final PairOfSameType<HRegion> pairOfSameType,
-        final SplitTransaction st) {
+        final IndexSplitTransaction st) {
       this.parent = parent;
       this.daughterRegions = pairOfSameType;
       this.st = st;
@@ -1170,7 +1171,7 @@ public class IndexRegionObserver extends BaseRegionObserver {
       return this.daughterRegions;
     }
 
-    public SplitTransaction getSplitTransaction() {
+    public IndexSplitTransaction getSplitTransaction() {
       return this.st;
     }
 

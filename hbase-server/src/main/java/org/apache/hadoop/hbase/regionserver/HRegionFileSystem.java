@@ -558,28 +558,26 @@ public class HRegionFileSystem {
     
     // Check whether the split row lies in the range of the store file
     // If it is outside the range, return directly.
-    if (!isIndexTable()) {
-      if (top) {
-        //check if larger than last key.
-        KeyValue splitKey = KeyValue.createFirstOnRow(splitRow);
-        byte[] lastKey = f.createReader().getLastKey();      
-        // If lastKey is null means storefile is empty.
-        if (lastKey == null) return null;
-        if (f.getReader().getComparator().compareFlatKey(splitKey.getBuffer(), 
-          splitKey.getKeyOffset(), splitKey.getKeyLength(), lastKey, 0, lastKey.length) > 0) {
-          return null;
-        }
-      } else {
-        //check if smaller than first key
-        KeyValue splitKey = KeyValue.createLastOnRow(splitRow);
-        byte[] firstKey = f.createReader().getFirstKey();
-        // If firstKey is null means storefile is empty.
-        if (firstKey == null) return null;
-        if (f.getReader().getComparator().compareFlatKey(splitKey.getBuffer(), 
-          splitKey.getKeyOffset(), splitKey.getKeyLength(), firstKey, 0, firstKey.length) < 0) {
-          return null;
-        }      
+    if (top) {
+      //check if larger than last key.
+      KeyValue splitKey = KeyValue.createFirstOnRow(splitRow);
+      byte[] lastKey = f.createReader().getLastKey();      
+      // If lastKey is null means storefile is empty.
+      if (lastKey == null) return null;
+      if (f.getReader().getComparator().compareFlatKey(splitKey.getBuffer(), 
+        splitKey.getKeyOffset(), splitKey.getKeyLength(), lastKey, 0, lastKey.length) > 0) {
+        return null;
       }
+    } else {
+      //check if smaller than first key
+      KeyValue splitKey = KeyValue.createLastOnRow(splitRow);
+      byte[] firstKey = f.createReader().getFirstKey();
+      // If firstKey is null means storefile is empty.
+      if (firstKey == null) return null;
+      if (f.getReader().getComparator().compareFlatKey(splitKey.getBuffer(), 
+        splitKey.getKeyOffset(), splitKey.getKeyLength(), firstKey, 0, firstKey.length) < 0) {
+        return null;
+      }      
 
       f.getReader().close(true);
     }
@@ -597,11 +595,6 @@ public class HRegionFileSystem {
     // suffix and into the new region location (under same family).
     Path p = new Path(splitDir, f.getPath().getName() + "." + parentRegionName);
     return r.write(fs, p);
-  }
-
-  private boolean isIndexTable() {
-    String tablePath = this.tableDir.getName();
-    return tablePath.endsWith("_idx");
   }
 
   // ===========================================================================
