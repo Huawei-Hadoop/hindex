@@ -303,7 +303,7 @@ public class SingleColumnValueFilter extends FilterBase {
     return filter;
   }
 
-  public FilterProtos.SingleColumnValueFilter convert() {
+  FilterProtos.SingleColumnValueFilter convert() {
     FilterProtos.SingleColumnValueFilter.Builder builder =
       FilterProtos.SingleColumnValueFilter.newBuilder();
     if (this.columnFamily != null) {

@@ -34,11 +34,11 @@ public class DoubleComparator extends DecimalComparator {
     val.put(actualValue, offset, length);
     byte[] array = val.array();
     if (msb[0] == 0) {
-      value[0] ^= (1 << 7);
+      getValue()[0] ^= (1 << 7);
       array[0] ^= (1 << 7);
     } else {
       for (int i = 0; i < 8; i++) {
-        value[i] ^= 0xff;
+        getValue()[i] ^= 0xff;
       }
 
       for (int i = 0; i < 8; i++) {
@@ -46,7 +46,7 @@ public class DoubleComparator extends DecimalComparator {
       }
     }
     int compareTo = super.compareTo(array, 0, length);
-    System.arraycopy(temp, 0, value, 0, value.length);
+    System.arraycopy(temp, 0, getValue(), 0, getValue().length);
     return compareTo;
   }
 

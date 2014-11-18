@@ -32,11 +32,11 @@ public class IntComparator extends DecimalComparator {
   public int compareTo(byte[] actualValue, int offset, int length) {
     ByteArrayBuilder val = new ByteArrayBuilder(length);
     val.put(actualValue, offset, length);
-    value[0] ^= (1 << 7);
+    getValue()[0] ^= (1 << 7);
     byte[] array = val.array();
     array[0] ^= (1 << 7);
     int compareTo = super.compareTo(array, 0, length);
-    System.arraycopy(temp, 0, value, 0, value.length);
+    System.arraycopy(temp, 0, getValue(), 0, getValue().length);
     return compareTo;
   }
 

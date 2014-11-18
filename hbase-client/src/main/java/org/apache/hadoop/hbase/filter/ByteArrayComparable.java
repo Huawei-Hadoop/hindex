@@ -31,7 +31,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 @InterfaceStability.Stable
 public abstract class ByteArrayComparable implements Comparable<byte[]> {
 
-  protected byte[] value;
+  byte[] value;
 
   /**
    * Constructor.

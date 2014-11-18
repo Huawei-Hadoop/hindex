@@ -29,12 +29,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.SingleColumnRangeFilter;
+import org.apache.hadoop.hbase.filter.SingleColumnValuePartitionFilter;
 import org.apache.hadoop.hbase.filter.FilterList.Operator;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.index.Column;
 import org.apache.hadoop.hbase.index.ValuePartition;
-import org.apache.hadoop.hbase.index.filter.SingleColumnRangeFilter;
-import org.apache.hadoop.hbase.index.filter.SingleColumnValuePartitionFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 

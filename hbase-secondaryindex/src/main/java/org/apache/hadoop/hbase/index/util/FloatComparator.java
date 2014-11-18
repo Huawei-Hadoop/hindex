@@ -34,13 +34,13 @@ public class FloatComparator extends DecimalComparator {
     val.put(actualValue, offset, length);
     byte[] array = val.array();
     if (msb[0] == 0) {
-      value[0] ^= (1 << 7);
+      getValue()[0] ^= (1 << 7);
       array[0] ^= (1 << 7);
     } else {
-      value[0] ^= 0xff;
-      value[1] ^= 0xff;
-      value[2] ^= 0xff;
-      value[3] ^= 0xff;
+      getValue()[0] ^= 0xff;
+      getValue()[1] ^= 0xff;
+      getValue()[2] ^= 0xff;
+      getValue()[3] ^= 0xff;
 
       array[0] ^= 0xff;
       array[1] ^= 0xff;
@@ -48,7 +48,7 @@ public class FloatComparator extends DecimalComparator {
       array[3] ^= 0xff;
     }
     int compareTo = super.compareTo(array, 0, length);
-    System.arraycopy(temp, 0, value, 0, value.length);
+    System.arraycopy(temp, 0, getValue(), 0, getValue().length);
     return compareTo;
   }
 
