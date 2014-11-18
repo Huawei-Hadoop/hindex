@@ -19,7 +19,6 @@
 package org.apache.hadoop.hbase.master;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -2634,7 +2633,7 @@ public class AssignmentManager extends ZooKeeperListener {
    * @return True if nothing in regions in transition.
    * @throws InterruptedException
    */
-  public boolean waitUntilNoRegionsInTransition(final long timeout)
+  boolean waitUntilNoRegionsInTransition(final long timeout)
       throws InterruptedException {
     // Blocks until there are no regions in transition. It is possible that
     // there

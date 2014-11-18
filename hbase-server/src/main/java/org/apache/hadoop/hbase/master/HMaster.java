@@ -1437,10 +1437,6 @@ MasterServices, Server {
       LOG.debug("Master has not been initialized, don't run balancer.");
       return false;
     }
-    return balanceInternals();
-  }
-
-  public boolean balanceInternals() throws HBaseIOException {
     // Do this call outside of synchronized block.
     int maximumBalanceTime = getBalancerCutoffTime();
     boolean balancerRan;

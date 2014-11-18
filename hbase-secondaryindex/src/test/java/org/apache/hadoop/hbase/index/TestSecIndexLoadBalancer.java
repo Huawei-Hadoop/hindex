@@ -329,7 +329,7 @@ public class TestSecIndexLoadBalancer {
     admin.balancer();
     Thread.sleep(10000);
     ZKAssign.blockUntilNoRIT(zkw);
-    master.getAssignmentManager().waitUntilNoRegionsInTransition(10000);
+    IndexMasterObserver.waitUntilNoRegionsInTransition(10000, master);
     isRegionColocated = TestUtils.checkForColocation(master, tableName, indexTableName);
     assertTrue("User regions and index regions should colocate.", isRegionColocated);
   }
@@ -407,7 +407,7 @@ public class TestSecIndexLoadBalancer {
     }
     ZKAssign.blockUntilNoRIT(zkw);
     AssignmentManager am = UTIL.getHBaseCluster().getMaster().getAssignmentManager();
-    while(!am.waitUntilNoRegionsInTransition(1000));
+    while(!IndexMasterObserver.waitUntilNoRegionsInTransition(1000, master));
     boolean isRegionColocated =
         TestUtils.checkForColocation(master, tableName.getNameAsString(),
           IndexUtils.getIndexTableName(tableName));
@@ -444,7 +444,7 @@ public class TestSecIndexLoadBalancer {
       admin.close();
       admin = new IndexAdmin(cluster.getMaster().getConfiguration());
     }
-    master.getAssignmentManager().waitUntilNoRegionsInTransition(1000);
+    IndexMasterObserver.waitUntilNoRegionsInTransition(1000, master);
     boolean isRegionColocated = TestUtils.checkForColocation(master, tableName, indexTableName);
     assertTrue("User regions and index regions should colocate.", isRegionColocated);
 

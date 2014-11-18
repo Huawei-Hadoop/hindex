@@ -694,7 +694,7 @@ public class IndexMasterObserver extends BaseMasterObserver {
     long timeout =
         master.getConfiguration().getLong("hbase.bulk.assignment.waiton.empty.rit", 5 * 60 * 1000);
     try {
-      am.waitUntilNoRegionsInTransition(timeout);
+      waitUntilNoRegionsInTransition(timeout, master);
     } catch (InterruptedException e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Interrupted while waiting for the regions in transition to complete.", e);
@@ -746,19 +746,51 @@ public class IndexMasterObserver extends BaseMasterObserver {
         }
       }
     }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Balancing after master initialization.");
+  }
+  
+  @Override
+  public void postStartMaster(ObserverContext<MasterCoprocessorEnvironment> ctx) throws IOException {
+    LOG.info("Entering into postStartMaster.");
+    MasterServices master = ctx.getEnvironment().getMasterServices();
+    long timeout =
+        master.getConfiguration().getLong("hbase.bulk.assignment.waiton.empty.rit", 5 * 60 * 1000);
+    if (LOG.isInfoEnabled()) {
+      LOG.info("Balancing after master initialization.");
     }
 
     try {
-      master.getAssignmentManager().waitUntilNoRegionsInTransition(timeout);
+      waitUntilNoRegionsInTransition(timeout, master);
     } catch (InterruptedException e) {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Interrupted while waiting for the regions in transition to complete.", e);
       }
     }
-    ((HMaster) master).balanceInternals();
-    LOG.info("Exiting from preMasterInitialization.");
+    ((HMaster)master).balance();
+    LOG.info("Exiting from postStartMaster.");
   }
+  /**
+   * Wait until no regions in transition.
+   * @param timeout How long to wait.
+   * @return True if nothing in regions in transition.
+   * @throws InterruptedException
+   */
+  public static boolean waitUntilNoRegionsInTransition(final long timeout, MasterServices master)
+      throws InterruptedException {
+    // Blocks until there are no regions in transition. It is possible that
+    // there
+    // are regions in transition immediately after this returns but guarantees
+    // that if it returns without an exception that there was a period of time
+    // with no regions in transition from the point-of-view of the in-memory
+    // state of the Master.
+    final long endTime = System.currentTimeMillis() + timeout;
+    RegionStates regionStates = master.getAssignmentManager().getRegionStates();
+    while (!master.isStopped() && master.getAssignmentManager().getRegionStates().isRegionsInTransition()
+        && endTime > System.currentTimeMillis()) {
+      regionStates.waitForUpdate(100);
+    }
+
+    return !regionStates.isRegionsInTransition();
+  }
+
 
 }
