@@ -168,11 +168,11 @@ public class HBaseAdmin implements Abortable, Closeable {
 
   private volatile Configuration conf;
   private final long pause;
-  protected final int numRetries;
+  private final int numRetries;
   // Some operations can take a long time such as disable of big table.
   // numRetries is for 'normal' stuff... Multiply by this factor when
   // want to wait a long time.
-  protected final int retryLongerMultiplier;
+  private final int retryLongerMultiplier;
   private boolean aborted;
   private boolean cleanupConnectionOnClose = false; // close the connection in close()
   private boolean closed = false;
@@ -402,7 +402,7 @@ public class HBaseAdmin implements Abortable, Closeable {
     return getTableDescriptor(TableName.valueOf(tableName));
   }
 
-  protected long getPauseTime(int tries) {
+  private long getPauseTime(int tries) {
     int triesCount = tries;
     if (triesCount >= HConstants.RETRY_BACKOFF.length) {
       triesCount = HConstants.RETRY_BACKOFF.length - 1;
@@ -626,6 +626,7 @@ public class HBaseAdmin implements Abortable, Closeable {
    * @throws IOException if a remote or network exception occurs
    */
   public void deleteTable(final TableName tableName) throws IOException {
+    boolean tableExists = true;
 
     executeCallable(new MasterCallable<Void>(getConnection()) {
       @Override
@@ -636,16 +637,6 @@ public class HBaseAdmin implements Abortable, Closeable {
       }
     });
 
-    waitUntilTableIsDeleted(tableName);
-  }
-
-  /**
-   * Wait until table is deleted. 
-   * @param tableName
-   * @throws IOException
-   */
-  public void waitUntilTableIsDeleted(final TableName tableName) throws IOException {
-    boolean tableExists = true;
     int failures = 0;
     // Wait until all regions deleted
     for (int tries = 0; tries < (this.numRetries * this.retryLongerMultiplier); tries++) {
@@ -796,7 +787,7 @@ public class HBaseAdmin implements Abortable, Closeable {
    * @throws IOException if a remote or network exception occurs or
    *    table is not enabled after the retries period.
    */
-  public void waitUntilTableIsEnabled(final TableName tableName) throws IOException {
+  private void waitUntilTableIsEnabled(final TableName tableName) throws IOException {
     boolean enabled = false;
     long start = EnvironmentEdgeManager.currentTimeMillis();
     for (int tries = 0; tries < (this.numRetries * this.retryLongerMultiplier); tries++) {
@@ -953,22 +944,7 @@ public class HBaseAdmin implements Abortable, Closeable {
   public void disableTable(final TableName tableName)
   throws IOException {
     disableTableAsync(tableName);
-    
-    waitUntilTableIsDisabled(tableName);
-    
-    LOG.info("Disabled " + tableName);
-  }
-
-  /**
-   * Wait until table is disabled.
-   * If disabling the table exceeds the retry period, an exception is thrown.
-   * @param tableName
-   * @throws IOException
-   * @throws InterruptedIOException
-   * @throws RegionException
-   */
-  public void waitUntilTableIsDisabled(final TableName tableName) throws IOException,
-      InterruptedIOException, RegionException {
+    // Wait until table is disabled
     boolean disabled = false;
     for (int tries = 0; tries < (this.numRetries * this.retryLongerMultiplier); tries++) {
       disabled = isTableDisabled(tableName);
@@ -992,6 +968,7 @@ public class HBaseAdmin implements Abortable, Closeable {
       throw new RegionException("Retries exhausted, it took too long to wait"+
         " for the table " + tableName + " to be disabled.");
     }
+    LOG.info("Disabled " + tableName);
   }
 
   public void disableTable(final byte[] tableName)

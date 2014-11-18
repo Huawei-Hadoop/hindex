@@ -30,7 +30,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MasterNotRunningException;
 import org.apache.hadoop.hbase.ServerName;
@@ -38,6 +40,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.TableNotEnabledException;
 import org.apache.hadoop.hbase.TableNotFoundException;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
+import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
@@ -55,8 +58,18 @@ import org.apache.hadoop.hbase.index.TableIndices;
 import org.apache.hadoop.hbase.index.ColumnQualifier.ValueType;
 import org.apache.hadoop.hbase.index.exception.StaleRegionBoundaryException;
 import org.apache.hadoop.hbase.index.util.IndexUtils;
+import org.apache.hadoop.hbase.ipc.PayloadCarryingRpcController;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.RequestConverter;
+import org.apache.hadoop.hbase.protobuf.ResponseConverter;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ClientService;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanRequest;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos.ScanResponse;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.ipc.RemoteException;
+
+import com.google.protobuf.ServiceException;
 
 /**
  * Extension of HBaseAdmin to perform index related operations. This also should be used when we
@@ -65,13 +78,34 @@ import org.apache.hadoop.hbase.util.Pair;
 public class IndexAdmin extends HBaseAdmin {
   private final Log LOG = LogFactory.getLog(this.getClass().getName());
 
+  private final int numRetries;
+  private final long pause;
+  // Some operations can take a long time such as disable of big table.
+  // numRetries is for 'normal' stuff... Multiply by this factor when
+  // want to wait a long time.
+  private final int retryLongerMultiplier;
+
+  
   public IndexAdmin(Configuration c) throws IOException {
     super(c);
+    this.pause = c.getLong(HConstants.HBASE_CLIENT_PAUSE,
+      HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
+    this.numRetries = c.getInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,
+      HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+    this.retryLongerMultiplier = c.getInt(
+      "hbase.client.retries.longer.multiplier", 10);
+
   }
 
   public IndexAdmin(HConnection connection) throws MasterNotRunningException,
       ZooKeeperConnectionException {
     super(connection);
+    this.pause = getConfiguration().getLong(HConstants.HBASE_CLIENT_PAUSE,
+      HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
+    this.numRetries = getConfiguration().getInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,
+      HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+    this.retryLongerMultiplier = getConfiguration().getInt(
+      "hbase.client.retries.longer.multiplier", 10);
   }
 
   @Override
@@ -245,6 +279,82 @@ public class IndexAdmin extends HBaseAdmin {
       }
       
     } 
+  }
+  
+  /**
+   * Wait until table is deleted. 
+   * @param tableName
+   * @throws IOException
+   */
+  @SuppressWarnings("deprecation")
+  public void waitUntilTableIsDeleted(final TableName tableName) throws IOException {
+    boolean tableExists = true;
+    int failures = 0;
+    // Wait until all regions deleted
+    for (int tries = 0; tries < (this.numRetries * this.retryLongerMultiplier); tries++) {
+      try {
+        HRegionLocation firstMetaServer = getConnection().locateRegion(TableName.META_TABLE_NAME,
+          HRegionInfo.createRegionName(tableName, null, HConstants.NINES, false));
+        Scan scan = MetaReader.getScanForTableName(tableName);
+        scan.addColumn(HConstants.CATALOG_FAMILY, HConstants.REGIONINFO_QUALIFIER);
+        ScanRequest request = RequestConverter.buildScanRequest(
+          firstMetaServer.getRegionInfo().getRegionName(), scan, 1, true);
+        Result[] values = null;
+        // Get a batch at a time.
+        ClientService.BlockingInterface server = getConnection().getClient(firstMetaServer
+            .getServerName());
+        PayloadCarryingRpcController controller = new PayloadCarryingRpcController();
+        try {
+          controller.setPriority(tableName);
+          ScanResponse response = server.scan(controller, request);
+          values = ResponseConverter.getResults(controller.cellScanner(), response);
+        } catch (ServiceException se) {
+          throw ProtobufUtil.getRemoteException(se);
+        }
+
+        // let us wait until hbase:meta table is updated and
+        // HMaster removes the table from its HTableDescriptors
+        if (values == null || values.length == 0) {
+          try {
+            getTableDescriptor(tableName);
+          } catch (TableNotFoundException t) {
+            tableExists = false;
+            break;
+          }
+        }
+      } catch (IOException ex) {
+        failures++;
+        if(failures == numRetries - 1) {           // no more tries left
+          if (ex instanceof RemoteException) {
+            throw ((RemoteException) ex).unwrapRemoteException();
+          } else {
+            throw ex;
+          }
+        }
+      }
+      try {
+        Thread.sleep(getPauseTime(tries));
+      } catch (InterruptedException e) {
+        // continue
+      }
+    }
+
+    if (tableExists) {
+      throw new IOException("Retries exhausted, it took too long to wait"+
+        " for the table " + tableName + " to be deleted.");
+    }
+    // Delete cached information to prevent clients from using old locations
+    this.getConnection().clearRegionCache(tableName);
+    LOG.info("Deleted " + tableName);
+  }
+  
+
+  private long getPauseTime(int tries) {
+    int triesCount = tries;
+    if (triesCount >= HConstants.RETRY_BACKOFF.length) {
+      triesCount = HConstants.RETRY_BACKOFF.length - 1;
+    }
+    return this.pause * HConstants.RETRY_BACKOFF[triesCount];
   }
   
   // TODO add APIs to have table name of string type and bytes type.
