@@ -596,8 +596,9 @@ public class IndexUtils {
       byte[] indexRegionStartKey) {
     List<Mutation> idxPuts = new ArrayList<Mutation>();
     byte[] primaryRowKey = userPut.getRow();
-    for(ColumnQualifier colQual : index.getIndexColumns()){
+    for (ColumnQualifier colQual : index.getIndexColumns()) {
       List<Cell> cells = userPut.getFamilyCellMap().get(colQual.getColumnFamily());
+      if (cells == null || cells.isEmpty()) continue;
       // format <startkey for the index region> + <1 byte> + <index name> + <separator 2 bytes>
       // <family name> + <separator 2 bytes> + <qualifier name> + <separator 2 bytes> + <value> +
       // <separator 2 bytes> + <user table rk>
