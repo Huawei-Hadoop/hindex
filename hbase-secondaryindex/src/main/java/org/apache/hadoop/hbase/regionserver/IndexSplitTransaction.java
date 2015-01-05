@@ -783,8 +783,7 @@ public class IndexSplitTransaction {
             boolean top, HRegionFileSystem fs) throws IOException {
         f.closeReader(true);
         Path splitDir =
-                new Path(new Path(new Path(fs.getRegionDir(), HRegionFileSystem.REGION_SPLITS_DIR),
-                        hri.getEncodedName()), familyName);
+                new Path(fs.getSplitsDir(hri), familyName);
         // A reference to the bottom half of the hsf store file.
         Reference r =
                 top ? Reference.createTopReference(splitRow) : Reference
