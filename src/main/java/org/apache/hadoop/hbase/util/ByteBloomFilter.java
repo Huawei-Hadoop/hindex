@@ -365,7 +365,7 @@ public class ByteBloomFilter implements BloomFilter, BloomFilterWriter {
   public void add(byte [] buf, int offset, int len) {
     /*
      * For faster hashing, use combinatorial generation
-     * http://www.eecs.harvard.edu/~kirsch/pubs/bbbf/esa06.pdf
+     * https://www.eecs.harvard.edu/~michaelm/postscripts/tr-02-05.pdf
      */
     int hash1 = this.hash.hash(buf, offset, len, 0);
     int hash2 = this.hash.hash(buf, offset, len, hash1);
